@@ -7,3 +7,5 @@ gateway/data/
 node_modules/
 .pytest_cache/
 firmware/esp32/config.py
+ logs/
+ **/logs/
