@@ -20,6 +20,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.history import router as history_router
+from api.routes.environment import router as environment_router
 
 
 # ---------------------------------------------------------------------
@@ -49,13 +50,9 @@ redis_client = redis.Redis(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Verify Redis is available when the API starts.
-
-    Historical Snowflake connections are opened on demand
-    by the repository layer, not during application startup.
-    """
     redis_client.ping()
+    app.state.redis_client = redis_client
+
     logger.info("Connected to Redis")
 
     try:
@@ -106,7 +103,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------
 
 app.include_router(history_router)
-
+app.include_router(environment_router)
 
 # ---------------------------------------------------------------------
 # Health check

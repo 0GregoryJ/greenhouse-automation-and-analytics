@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/header.png" alt="Greenhouse IoT Streaming Pipeline" width="100%">
+  <img src="docs/assets/header.png" alt="Greenhouse IoT Streaming Pipeline" width="100%">
 </p>
 
 <p align="center">
@@ -14,18 +14,17 @@
   <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white">
   <img alt="Caddy" src="https://img.shields.io/badge/Caddy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white">
-  <img alt="AWS" src="assets/badges/aws.svg">
+  <img alt="AWS" src="docs/assets/badges/aws.svg">
+  <img alt="dbt" src="docs/assets/badges/dbt.svg">
   <img alt="Tailscale" src="https://img.shields.io/badge/Tailscale-242424?style=for-the-badge&logo=tailscale&logoColor=white">
-  <img alt="Netlify" src="https://img.shields.io/badge/Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white">
   <img alt="GitHub Actions" src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
 </p>
 
 # Greenhouse IoT Streaming Pipeline
 
-An end-to-end streaming pipeline for greenhouse temperature, humidity, atmospheric pressure, and soil moisture. Sensors on an ESP32 publish readings over MQTT to a Raspberry Pi, which validates and buffers them in SQLite before forwarding them to Kafka on AWS. A live consumer keeps the latest values in Redis for a React dashboard served by FastAPI. A historical consumer archives every event to S3; dbt models in Snowflake power a history API for analytics.
+An end-to-end streaming pipeline for greenhouse temperature, humidity, atmospheric pressure, and soil moisture. Sensors on an ESP32 publish readings over MQTT to a Raspberry Pi, which validates and buffers them in SQLite before forwarding them to Kafka on AWS. A live consumer keeps the latest values in Redis for a React dashboard served by FastAPI. A historical consumer archives every event to S3; tested dbt models in Snowflake power analytics for raw readings and a calcutated conditions score, and summarize by hour and day.
 
 **Live:** [Dashboard](https://greenhouse.gregoryjoshua.com) · [API health](https://api.gregoryjoshua.com/health)
-
 
 ## Architecture
 
@@ -47,8 +46,9 @@ flowchart LR
   end
 
   snow[("Snowflake")]
-  dbt["dbt marts"]
-  dash["React dashboard<br/>Netlify"]
+  dbt["dbt marts<br/>incl. env. score"]
+  cfg["config/environmental_score.v1.json"]
+  dash["React dashboard"]
 
   esp -->|"MQTT QoS 1"| mqtt
   prod -->|"Tailscale"| kafka
@@ -57,7 +57,10 @@ flowchart LR
   s3 --> snow
   snow --> dbt
   dbt --> api
-  dash -->|"HTTPS poll · live + history"| api
+  cfg --> api
+  cfg --> dbt
+  redis -->|"live score"| api
+  dash -->|"HTTPS · live, history, score"| api
 
   ingest -.-> dlq[("Rejected events")]
   kafka -.-> flink["Flink rolling metrics"]
@@ -74,73 +77,69 @@ Solid boxes are implemented. Dashed boxes are on the [roadmap](#roadmap). Detail
 2. The Pi validates each event against its schema version, commits it to SQLite, and only then acknowledges the MQTT message.
 3. A producer sends pending rows to Kafka and marks a row delivered only after Kafka acknowledges it.
 4. The live consumer updates the latest reading per sensor and measurement in Redis, committing its Kafka offset after the write.
-5. The historical consumer, in its own consumer group, batches events into gzip-compressed JSON Lines objects in S3 (partitioned by date and named by Kafka offset range) and commits only after the upload succeeds.
-6. The S3 archive is loaded into Snowflake. dbt builds staging, intermediate, and mart models (hourly and daily facts) with `event_id` deduplication.
-7. FastAPI serves live readings from Redis and historical series from Snowflake marts (`GET /api/v1/history/series`). The React dashboard has a **Live** tab (polls every 3 seconds; readings older than 30 seconds are stale) and a **History** tab (trends, weighted summaries, and period insights from the history API).
+5. The historical consumer, in its own consumer group, batches events into gzip-compressed JSON Lines objects in S3 and commits only after the upload succeeds.
+6. A Snowflake task loads new S3 objects into `RAW.SENSOR_EVENTS`. dbt builds staging, intermediate, and mart models (including environmental scores) with `event_id` deduplication.
+7. FastAPI serves live readings and the live conditions score from Redis, plus historical sensor series and score history from Snowflake marts. The React dashboard shows Live and History views.
 
 Delivery is at-least-once, with deduplication by `event_id`.
 
+## Analytics
+
+### Environmental Conditions Score
+
+The primary analytics product is a versioned, rules-based **0–100** suitability score (`conditions-v1`) from air temperature, relative humidity, and soil moisture. It measures alignment with configured growing-environment targets — **not** verified plant health.
+
+| Path | Computation |
+| --- | --- |
+| Live | FastAPI scores the latest Redis readings for a gateway (`GET /api/v1/environment/score/current`) |
+| Historical | dbt hourly/daily score marts in Snowflake; FastAPI reads them (`GET /api/v1/environment/score/history`) |
+
+Shared rules live in [`config/environmental_score.v1.json`](config/environmental_score.v1.json) and feed both the Python scorer and the dbt seed. The Live dashboard leads with the score; History charts score trends (or individual sensors).
+
+Methodology: [Environmental Conditions Score](docs/environmental-conditions-score.md) · Warehouse bootstrap: [Snowflake setup](docs/snowflake-setup.md) · API shapes: [API reference](docs/api.md)
+
+### Historical sensor series
+
+Hourly and daily aggregates for each sensor and measurement (`GET /api/v1/history/series`, periods `24h` / `7d` / `30d`). The History tab plots averages with min–max bands and weighted period summaries from warehouse marts. Loads and dbt runs are scheduled; charts can lag live data.
+
+### Live readings
+
+`GET /api/v1/sensors/latest` from Redis. The Live tab polls every 3 seconds and marks readings older than 30 seconds as stale. Individual cards stay available even if the score endpoint is incomplete or down.
+
 ## What this demonstrates
 
-- **Durable edge buffering.** A SQLite outbox with acknowledge-after-commit ingestion keeps accepted events through Kafka and network outages. Retention cleanup removes only delivered rows.
-- **Delivery semantics.** Persistent QoS 1 sessions, an acknowledged idempotent Kafka producer, manual offset commits, and idempotent Redis updates (a Lua script rejects older timestamps).
-- **Versioned data contracts.** JSON Schema v1 and v2 coexist, and the gateway validates by `schema_version`.
-- **Replayable streaming.** Kafka retains 7 days of events, and two independent consumer groups read the same topic: a live view and a durable archive.
-- **Historical archive and warehouse.** Every event lands in S3 as date-partitioned, offset-ranged `.jsonl.gz` objects. dbt models in [`warehouse/`](warehouse/) turn the Snowflake raw table into hourly and daily marts; FastAPI exposes them on `/api/v1/history/series` with JWT key auth, and the dashboard History tab charts those series.
-- **Operations.** systemd services and timers, Docker Compose, a gateway health check with exit codes, and deployment verification scripts.
-- **Testing and CI/CD.** pytest suites for schemas, ingest, cleanup, health, the live consumer (offset-commit ordering, Redis timestamp guard), and the API against a real Redis. GitHub Actions runs them with a dashboard lint, unit tests, and build, then deploys to the Pi and EC2 over Tailscale and SSH on `main`.
-- **Decision records.** The reasoning behind the main design choices is written down as [ADRs](docs/decisions/README.md).
-- **Networking and security basics.** Tailscale between hosts, authenticated MQTT, loopback-bound API behind Caddy HTTPS, and secrets kept out of Git.
-- **Embedded work.** MicroPython firmware with shared I²C sensors, NTP time sync, per-sensor failure isolation with automatic recovery, and non-blocking network retry.
+- **Durable edge buffering.** SQLite outbox with acknowledge-after-commit ingestion through Kafka and network outages.
+- **Delivery semantics.** Persistent MQTT QoS 1, idempotent Kafka producer, manual offset commits, Redis timestamp guard.
+- **Versioned data contracts.** JSON Schema v1 and v2 at the gateway.
+- **Replayable streaming.** Dual Kafka consumer groups: live Redis view and durable S3 archive.
+- **Warehouse analytics.** S3 → Snowflake task → dbt marts → FastAPI, including the Environmental Conditions Score.
+- **Operations and CI/CD.** systemd, Compose, pytest, dashboard lint/test/build, Tailscale/SSH deploys on `main`, scheduled dbt.
+- **Decision records.** [ADRs](docs/decisions/README.md) for the main design choices.
 
 ## Roadmap
 
-Planned work, grouped by theme. Items are not scheduled.
-
-**Reliability and hardening**
-
-- **Rejected-event storage.** Persist invalid payloads and validation errors in a dead-letter table with bounded retention and a replay path, and quarantine malformed Kafka messages in the historical consumer instead of stopping on them.
-- **Gateway input hardening.** Handle non-object JSON and malformed `schema_version` values without a process restart, and enforce `uuid` and `date-time` formats at the gateway so it agrees with the consumer's checks.
-- **Firmware.** Socket timeouts so a stalled broker cannot block publishing, a periodic heartbeat with firmware version, optional on-device buffering, and calibrated soil moisture as a new unit.
-- **Kafka.** A multi-broker cluster with replication for high availability and storage-loss protection, and a topic-level retention policy managed as code.
-- **Transport security.** TLS for MQTT and Kafka, and per-device MQTT accounts with topic ACLs.
-- **Redis recovery.** An automated, tested rebuild from Kafka, and expiry for retired sensors.
-
-**Observability**
-
-- **External alerting** for outages and a growing backlog.
-- **Downstream health checks** for Kafka, the consumer, Redis, the API, and the ESP32, plus consumer-lag metrics and an end-to-end synthetic probe.
-- **Centralized, structured logging.**
-
-**CI/CD and infrastructure**
-
-- **Deploy verification and rollback.** Run `verify-deployment.sh` and a data-freshness check after each deploy, and roll back automatically on failure. Deploy tagged container images from a registry.
-- **Safer triggers.** Path filters so documentation-only changes do not redeploy, and environment approvals for production.
-- **Broader deployment.** Pi systemd units, a migration runner for the SQLite database, Kafka host and Caddy configuration, and firmware releases.
-- **Terraform.** EC2 instances, security groups, DNS, and host bootstrap as code.
-- **Configuration as code.** Commit Netlify build settings (and any remaining site config) to the repository alongside `VITE_API_URL`.
-
-**Analytics and features**
-
-- **History metadata endpoint.** Expose warehouse-known sensors and measurement types so History can list devices that are offline or missing from Redis.
-- **Richer history UX.** Multi-metric comparison on one chart, and quality overlays from daily quality marts.
-- **Warehouse automation.** Schedule or further automate the S3 → Snowflake load and `dbt run` (profiles and orchestration live outside the API containers).
-- **Flink.** Event-time rolling-window metrics, such as 5-minute averages and moisture trends.
-- **More sensors.** Additional measurement types (for example light or CO₂) through new schema versions.
+- **Reliability.** Rejected-event / DLQ path; historical consumer quarantine for bad Kafka messages; gateway input hardening.
+- **Security.** TLS for MQTT and Kafka; tighter MQTT ACLs.
+- **Observability.** External alerting, consumer-lag metrics, end-to-end synthetic probe.
+- **Score and sensors.** Calibrate soil moisture and crop-specific profiles (bump `score_version`); optional new measurement types (e.g. light, CO₂).
+- **Infrastructure as code.** Terraform for hosts/DNS; deploy verification and rollback in CI.
 
 ## Documentation
 
 | Document | Contents |
 | --- | --- |
 | [Architecture](docs/architecture.md) | Components, event flow, data stores, delivery guarantees |
+| [API reference](docs/api.md) | Live, history, and environmental-score endpoints |
+| [Environmental Conditions Score](docs/environmental-conditions-score.md) | Scoring methodology, inputs, limitations |
+| [Snowflake setup](docs/snowflake-setup.md) | Warehouse bootstrap, S3 load task, roles, JWT users |
 | [Data contracts](docs/data-contracts.md) | Schemas, validation points, safe schema evolution |
 | [Adding a sensor](docs/adding-a-sensor.md) | Step-by-step guide and checklist |
-| [Deployment](docs/deployment.md) | CI/CD, setup, updates, verification, and rollback for each component |
+| [Deployment](docs/deployment.md) | CI/CD, setup, updates, verification, and rollback |
 | [Operations](docs/operations.md) | Health checks, logs, troubleshooting |
 | [Decision records](docs/decisions/README.md) | ADRs for the main design choices |
 | [ESP32 firmware](firmware/esp32/README.md) | Hardware, MicroPython flashing, wiring, configuration |
 | [Infrastructure](infrastructure/README.md) | Component-level infrastructure notes |
-| [Warehouse (dbt)](warehouse/) | Staging, intermediate, and mart models over Snowflake |
+| [Warehouse (dbt)](warehouse/README.md) | Staging, intermediate, score marts, seed generation |
 
 Configuration templates: [`.env.example`](.env.example), [`firmware/esp32/config.example.py`](firmware/esp32/config.example.py). Schemas: [`schemas/`](schemas/).
 
@@ -153,13 +152,14 @@ gateway/             Raspberry Pi ingest, producer, cleanup, health, migrations
 schemas/             Versioned event schemas and examples
 consumers/live/      Kafka to Redis consumer
 consumers/historical/ Kafka to S3 archive consumer
-api/                 FastAPI service (live Redis + Snowflake history)
-warehouse/           dbt project (staging, intermediate, marts)
+api/                 FastAPI service (live Redis + Snowflake history/scores)
+config/              Versioned environmental score rules (JSON)
+warehouse/           dbt project (staging, intermediate, marts, score seed)
 dashboard/           React / Vite dashboard (Live + History tabs)
 infrastructure/      systemd, Mosquitto, Kafka, Caddy config and scripts
 tests/               pytest suites (schemas, gateway, consumer, API)
 .github/workflows/   CI and deployment workflow
 requirements/        Dependencies per deployment role
 compose.yaml         Consumers, Redis, and API containers
-docs/                Architecture, contracts, deployment, operations
+docs/                Architecture, API, scoring, Snowflake, operations (+ assets/)
 ```

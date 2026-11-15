@@ -1,0 +1,12 @@
+
+    
+    
+    ;
+    -- dbt seed --
+    
+            insert overwrite into GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules (score_version, measurement_type, unit, weight, target_min, target_max, tolerance_below, tolerance_above, valid_min, valid_max) values
+            (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        
+
+;
+  

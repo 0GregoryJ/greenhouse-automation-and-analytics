@@ -99,8 +99,8 @@ docker stop greenhouse-test-redis
 | `tests/schemas/` | v1 and v2 JSON Schema accept and reject cases |
 | `tests/gateway/` | `on_message` persistence, schema validation in ingest, cleanup, health thresholds |
 | `tests/consumers/` | `parse_event`, the Redis timestamp guard, Redis failure propagation, offset commit after the Redis write |
-| `tests/api/` | `/health`, `/api/v1/sensors/latest` (live Redis), `/api/v1/history/series` (Snowflake call mocked), invalid `period` validation |
-| `dashboard/` (`npm run test`) | History summary weighting, insights, and timeline gap-fill helpers |
+| `tests/api/` | `/health`, `/api/v1/sensors/latest` (live Redis), `/api/v1/history/series` (Snowflake call mocked), environmental score unit tests, invalid `period` validation |
+| `dashboard/` (`npm run test`) | History/score summary helpers, null-score gaps, URL builders, °F / Pacific formatting |
 
 ## Where things run
 
@@ -300,15 +300,17 @@ sudo docker compose up -d --build
 
 ### dbt warehouse
 
-The dbt project lives in [`warehouse/`](../warehouse/) (`profile: warehouse`, package `greenhouse_analytics`). It expects a Snowflake source `GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS` and builds staging, intermediate, and mart models. Run it from a machine that has Snowflake credentials in a dbt profile (not from the API container):
+The dbt project lives in [`warehouse/`](../warehouse/) (`profile: warehouse`, package `greenhouse_analytics`). It expects a Snowflake source `GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS` and builds staging, intermediate, sensor marts, and environmental-score marts. Regenerate the scoring seed from the shared JSON config before building. Run from a machine that has Snowflake credentials in a dbt profile (not from the API container):
 
 ```bash
 pip install -r requirements/dbt.txt
+python warehouse/scripts/generate_score_seed.py
 cd warehouse
 dbt deps   # if you add packages later
-dbt run
-dbt test
+dbt build
 ```
+
+Operator notes: [Snowflake setup](snowflake-setup.md) (database, S3 integration, load task, API/dbt JWT users), [Warehouse README](../warehouse/README.md). The API image must include [`config/`](../config/) (copied in [`api/dockerfile`](../api/dockerfile)) for live scoring.
 
 Keep the API's `SNOWFLAKE_SCHEMA` aligned with the schema where mart tables are built (default `GREENHOUSE_DBT_MARTS`).
 
@@ -356,7 +358,7 @@ The React/Vite app in [`dashboard/`](../dashboard/) is deployed from Git by Netl
 
 The API origin is resolved in [`dashboard/src/api/config.js`](../dashboard/src/api/config.js) from `VITE_API_URL` or `VITE_API_BASE_URL`, defaulting to `https://api.gregoryjoshua.com`. Set the env var in Netlify (or a local `.env`) to point at another API. The API lists the dashboard origin in `CORS_ORIGINS`, and `http://localhost:5173` (the default) allows local development against the production API.
 
-The Live tab polls `/api/v1/sensors/latest`. The History tab calls `/api/v1/history/series` (Snowflake marts). History sensor pickers are populated from the live endpoint, so warehouse-only sensors do not appear until a metadata endpoint exists.
+The Live tab polls `/api/v1/sensors/latest` and `/api/v1/environment/score/current`. The History tab charts environmental-score history or `/api/v1/history/series` (Snowflake marts). Gateways and sensors for pickers come from the live endpoint, so warehouse-only devices do not appear until a metadata endpoint exists.
 
 ```bash
 cd dashboard

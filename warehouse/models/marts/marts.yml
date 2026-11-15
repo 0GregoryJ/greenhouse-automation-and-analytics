@@ -121,3 +121,110 @@ models:
           Longest observed interval between valid consecutive
           readings, in seconds. May be null for a group with
           no comparable valid readings.
+
+  - name: fct_environmental_score_hourly
+    description: >
+      Hourly environmental suitability scores by gateway.
+      Combines air temperature (40%), relative humidity (25%),
+      and soil moisture (35%) using conditions-v1 scoring rules.
+      Values range from 0 to 100; higher values indicate closer
+      alignment with the configured target ranges.
+
+      Computed from hourly average sensor measurements.
+      A null overall score means one or more required
+      components were missing or invalid.
+
+      Soil thresholds are provisional and expressed in raw
+      sensor units. This score does not establish actual
+      plant health.
+
+    columns:
+      - name: measurement_hour_utc
+        description: UTC hour containing the aggregated measurements.
+        data_tests:
+          - not_null
+
+      - name: gateway_id
+        description: Gateway identifying the monitored greenhouse.
+        data_tests:
+          - not_null
+
+      - name: score_version
+        description: Version of the environmental scoring rules.
+        data_tests:
+          - not_null
+
+      - name: environmental_score
+        description: >
+          Weighted composite environmental suitability score
+          from 0 to 100. Null for incomplete intervals.
+
+      - name: temperature_score
+        description: Temperature suitability score from 0 to 100.
+
+      - name: humidity_score
+        description: Relative humidity suitability score from 0 to 100.
+
+      - name: soil_score
+        description: >
+          Provisional raw soil moisture suitability score
+          from 0 to 100.
+
+      - name: metric_count
+        description: Number of distinct matched measurement types.
+
+      - name: valid_component_count
+        description: Number of components with valid scores.
+
+      - name: status
+        description: Whether all three scoring components were available.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['complete', 'incomplete']
+
+  - name: fct_environmental_score_daily
+    description: >
+      Daily aggregation of the hourly environmental suitability
+      scores by gateway and scoring version.
+      Reports the average, minimum, and maximum of valid
+      hourly scores and the number of scored hours.
+
+      Daily averages weight valid hourly buckets equally.
+      They are not direct measurements of plant health.
+
+    columns:
+      - name: measurement_date_utc
+        description: UTC date for the daily aggregation.
+        data_tests:
+          - not_null
+
+      - name: gateway_id
+        description: Gateway identifying the monitored greenhouse.
+        data_tests:
+          - not_null
+
+      - name: score_version
+        description: Scoring specification version.
+        data_tests:
+          - not_null
+
+      - name: avg_environmental_score
+        description: Average of valid hourly environmental scores.
+
+      - name: min_environmental_score
+        description: Minimum valid hourly environmental score.
+
+      - name: max_environmental_score
+        description: Maximum valid hourly environmental score.
+
+      - name: scored_hours
+        description: Number of hours with a non-null environmental score.
+        data_tests:
+          - not_null
+
+      - name: hours_with_data
+        description: Number of hourly rows considered.
+        data_tests:
+          - not_null

@@ -37,15 +37,16 @@ flowchart TB
       consumer["live-consumer"]
       histcons["historical-consumer"]
       redis[("Redis<br/>latest state, AOF")]
-      api["FastAPI :8000<br/>live + history"]
+      api["FastAPI :8000<br/>live + history + score"]
     end
     caddy["Caddy (systemd)<br/>HTTPS"]
     consumer --> redis
-    redis --> api
+    redis -->|"latest + live score"| api
     caddy --> api
   end
 
   snow[("Snowflake<br/>RAW + dbt marts")]
+  cfg["environmental_score.v1.json"]
   dash["React/Vite dashboard<br/>Netlify"]
   gha["GitHub Actions<br/>tests, build, deploy"]
 
@@ -56,8 +57,10 @@ flowchart TB
   kafka -->|"Tailscale"| histcons
   histcons -->|"gzip JSON Lines"| s3[("S3 bucket<br/>raw/sensor_events")]
   s3 --> snow
-  snow -->|"JWT · marts"| api
-  dash -->|"HTTPS · live poll + history"| caddy
+  snow -->|"JWT · sensor + score marts"| api
+  cfg -->|"live scorer"| api
+  cfg -->|"dbt score seed"| snow
+  dash -->|"HTTPS · live, history, score"| caddy
   gha -.->|"deploy: Tailscale + SSH"| pi
   gha -.->|"deploy: Tailscale + SSH"| compose
 
@@ -87,16 +90,17 @@ Solid boxes are implemented. Dashed boxes are planned (see the [roadmap](../READ
 | Redis | Latest-state materialized view | EC2 #2, Docker Compose | Implemented | [`compose.yaml`](../compose.yaml) |
 | Historical consumer | Consume the topic in its own group, batch events, upload gzip JSON Lines to S3, commit after upload | EC2 #2, Docker Compose | Implemented | [`consumers/historical/consumer.py`](../consumers/historical/consumer.py) |
 | S3 bucket | Durable raw archive of every event | AWS | In use; bucket and IAM are configured outside this repo | n/a |
-| FastAPI | Read-only HTTP API: live readings from Redis, historical series from Snowflake marts | EC2 #2, Docker Compose | Implemented | [`api/`](../api/) |
+| FastAPI | Read-only HTTP API: live readings and live environmental score from Redis; historical sensor series and score history from Snowflake marts | EC2 #2, Docker Compose | Implemented | [`api/`](../api/), [`config/`](../config/) |
 | Caddy | HTTPS reverse proxy to `127.0.0.1:8000` | EC2 #2, systemd | Implemented | [`infrastructure/caddy/caddyfile`](../infrastructure/caddy/caddyfile) |
-| Dashboard | Live tab polls every 3 s and marks readings older than 30 s stale; History tab charts `/api/v1/history/series` with weighted summaries | Netlify | Implemented | [`dashboard/`](../dashboard/) |
+| Dashboard | Live tab polls every 3 s, shows Environmental Conditions Score, marks readings older than 30 s stale; History tab charts score trends or `/api/v1/history/series` | Netlify | Implemented | [`dashboard/`](../dashboard/) |
 | Tailscale | Private network between Pi, Kafka host, and serving host; CI also joins it to reach the deploy targets | Pi, both EC2 hosts, CI runners | In use | n/a |
 | GitHub Actions | Run tests and the dashboard build; on `main`, deploy the Pi gateway services and the serving containers | GitHub-hosted runners | Implemented | [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml) |
 | Tests | pytest suites for schemas, ingest, cleanup, health, the live consumer, and the API | CI and local | Implemented | [`tests/`](../tests/) |
 | Rejected-event storage | Persist invalid payloads and errors | Pi | Planned | n/a |
 | Flink | Event-time rolling metrics | TBD | Planned | n/a |
 | Snowflake | Warehouse: raw events loaded from S3, queried by the API | Snowflake (cloud) | In use; account, load, and IAM are outside this repo | n/a |
-| dbt | Staging, intermediate, and mart models over the raw Snowflake table | Local / CI or host with profiles | Implemented | [`warehouse/`](../warehouse/) |
+| dbt | Staging, intermediate, sensor marts, and environmental-score marts over the raw Snowflake table | Local / CI or host with profiles | Implemented | [`warehouse/`](../warehouse/) |
+| Score config | Versioned environmental suitability rules shared by the live Python scorer and the dbt seed | Repo + API image | Implemented | [`config/environmental_score.v1.json`](../config/environmental_score.v1.json) |
 
 ## Event flow
 
@@ -107,10 +111,10 @@ Solid boxes are implemented. Dashed boxes are planned (see the [roadmap](../READ
 5. **Produce.** `kafka_producer.py` reads up to `KAFKA_BATCH_SIZE` (default 100) rows where `kafka_published_at IS NULL`, ordered by `received_at, event_id`. It sends them with key `event_id` and the stored JSON as the value, waits for every delivery callback, then sets `kafka_published_at` for acknowledged rows only. It does not start a new batch while the previous one has unresolved messages.
 6. **Consume.** `consumer.py` polls Kafka, checks the fields the live view needs, and runs an atomic Lua script that updates the Redis hash `greenhouse:latest:{gateway_id}:{sensor_id}:{measurement_type}` unless the stored `timestamp_ms` is newer. It commits the Kafka offset synchronously after Redis responds.
 7. **Archive.** `consumers/historical/consumer.py` reads the same topic in group `greenhouse-historical`. It buffers events per partition and flushes when a batch reaches `HISTORICAL_BATCH_SIZE` (240) events or is `HISTORICAL_FLUSH_SECONDS` (300) old. A batch becomes one gzip-compressed JSON Lines object at `s3://$S3_BUCKET/raw/sensor_events/year=YYYY/month=MM/day=DD/<topic>/partition=N/offsets-<first>-<last>.jsonl.gz`; each line is the original event plus `_kafka_topic`, `_kafka_partition`, and `_kafka_offset`. The Kafka offset is committed synchronously only after `put_object` returns. On SIGTERM it flushes pending batches before closing.
-8. **Warehouse.** Objects in S3 are loaded into Snowflake `GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS`. The dbt project in [`warehouse/`](../warehouse/) deduplicates on `event_id` and builds marts such as `FCT_SENSOR_HOURLY` and `FCT_SENSOR_DAILY` (schema name from the dbt profile; the API defaults to `GREENHOUSE_DBT_MARTS`).
-9. **Serve (live).** `GET /api/v1/sensors/latest` scans `greenhouse:latest:*`, pipelines `HGETALL`, and returns `{count, readings[]}` sorted by gateway, sensor, and measurement. `GET /health` pings Redis only.
-10. **Serve (history).** `GET /api/v1/history/series` queries Snowflake marts for `period` `24h`, `7d`, or `30d` (hourly or daily grain). The API opens a JWT connection with the RSA key mounted at `/run/secrets/snowflake_api_key.pem` ([`api/repositories/snowflake.py`](../api/repositories/snowflake.py)).
-11. **Display.** The dashboard **Live** tab fetches the live endpoint every 3 s. A reading is stale when its event timestamp is more than 30 s old. If a fetch fails, the last known readings stay on screen with an "Offline" status. The **History** tab calls `GET /api/v1/history/series` for sensor/measurement/period trends (avg line, min–max band, weighted summaries). Sensor options for History are discovered from the live payload.
+8. **Warehouse.** Objects in S3 are loaded into Snowflake `GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS`. The dbt project in [`warehouse/`](../warehouse/) deduplicates on `event_id` and builds marts such as `FCT_SENSOR_HOURLY`, `FCT_SENSOR_DAILY`, `FCT_ENVIRONMENTAL_SCORE_HOURLY`, and `FCT_ENVIRONMENTAL_SCORE_DAILY` (schema name from the dbt profile; the API defaults to `GREENHOUSE_DBT_MARTS`). Score rules are seeded from [`config/environmental_score.v1.json`](../config/environmental_score.v1.json).
+9. **Serve (live).** `GET /api/v1/sensors/latest` scans `greenhouse:latest:*`, pipelines `HGETALL`, and returns `{count, readings[]}` sorted by gateway, sensor, and measurement. `GET /api/v1/environment/score/current` scores the latest Redis readings for one `gateway_id` in-process. `GET /health` pings Redis only.
+10. **Serve (history).** `GET /api/v1/history/series` and `GET /api/v1/environment/score/history` query Snowflake marts for `period` `24h`, `7d`, or `30d` (hourly or daily grain). The API opens a JWT connection with the RSA key mounted at `/run/secrets/snowflake_api_key.pem` ([`api/repositories/snowflake.py`](../api/repositories/snowflake.py)).
+11. **Display.** The dashboard **Live** tab fetches the live endpoint every 3 s and shows a prominent Environmental Conditions Score card (score API failures do not hide sensor cards). A reading is stale when its event timestamp is more than 30 s old. The **History** tab charts either score trends or sensor series. Gateways/sensors for selectors are discovered from the live payload.
 
 Background tasks on the Pi run independently of this flow: `greenhouse-cleanup.timer` (hourly) and `greenhouse-health.timer` (every minute).
 
@@ -142,7 +146,7 @@ Each hop is decoupled by a durable or restartable boundary: SQLite absorbs Kafka
 | Kafka topic `greenhouse.sensor-readings` (EC2 #1) | Full event JSON as value, `event_id` as key. One partition, replication factor 1 | Decouples producer from consumers; allows replay and additional consumer groups | 168 h by `log.retention.hours` in the template |
 | S3 `raw/sensor_events/` | One `.jsonl.gz` object per flushed batch, partitioned by UTC date, topic, and partition, named by offset range. Lines are full events plus Kafka lineage fields | Permanent raw archive and source for the Snowflake load. Duplicates are possible across objects | Governed by the bucket's lifecycle rules, not by this repo |
 | Snowflake `RAW.SENSOR_EVENTS` | Parsed event fields plus Kafka lineage and load metadata | Warehouse landing table for dbt | Retention managed in Snowflake |
-| Snowflake dbt marts | Hourly and daily aggregates (`FCT_SENSOR_HOURLY`, `FCT_SENSOR_DAILY`, quality marts) | Analytics grain for the history API | Rebuilt by `dbt run` |
+| Snowflake dbt marts | Hourly and daily aggregates (`FCT_SENSOR_HOURLY`, `FCT_SENSOR_DAILY`, `FCT_ENVIRONMENTAL_SCORE_*`, quality marts) | Analytics grain for history and score APIs | Rebuilt by scheduled `dbt build` |
 | Redis (EC2 #2) | One hash per `gateway_id`/`sensor_id`/`measurement_type`: `value`, `unit`, `timestamp`, `timestamp_ms`, `event_id`, `sensor_id`, `gateway_id`, `measurement_type` | Low-latency latest-state view for the live API. Derived data, rebuildable from Kafka | AOF persistence on a Docker volume (`redis_data`). Keys have no TTL; a retired sensor's key is deleted manually |
 
 SQLite indexes live in [`gateway/migrations/002_outbox_indexes.sql`](../gateway/migrations/002_outbox_indexes.sql). The migration is applied by hand (see [Deployment](deployment.md#database-migration)).
@@ -190,7 +194,7 @@ Diagnostic procedures: [Operations](operations.md).
 
 ## Planned components
 
-Rejected-event storage and Flink rolling metrics are planned. The S3 archive, Snowflake load, dbt marts, history API, and dashboard History tab are implemented. The roadmap lives in the root [README](../README.md#roadmap).
+Rejected-event storage and Flink rolling metrics are planned. The S3 archive, Snowflake load, dbt marts (including environmental scores), history and score APIs, and dashboard Live/History experiences are implemented. The roadmap lives in the root [README](../README.md#roadmap).
 
 ## CI/CD
 
@@ -201,5 +205,6 @@ Rejected-event storage and Flink rolling metrics are planned. The S3 archive, Sn
 - **Schema registry.** Gateway schemas are loaded from `schemas/` at process start into a `{1: ..., 2: ...}` dict in `ingest.py`. A new version is a code change and an ingest restart.
 - **Version-agnostic downstream.** The producer forwards stored JSON verbatim. The live consumer checks seven fields and ignores `schema_version`, measurement type, and unit. The live API and dashboard pass unknown measurement types through. Historical marts aggregate by `measurement_type` without a code change for new types that already exist in the warehouse. This is why most new sensors need no live-path changes ([Adding a sensor](adding-a-sensor.md#what-needs-to-change)).
 - **Gateway identity.** The ESP32 sets `gateway_id` from its own `config.py`. `health.py` uses `pi-001`.
-- **Snowflake credentials.** Compose mounts `SNOWFLAKE_KEY_HOST_PATH` into the API container at `/run/secrets/snowflake_api_key.pem` and sets `SNOWFLAKE_PRIVATE_KEY_PATH` to that path. The host PEM must be readable by the container user (`appuser`).
-- **Tests.** `tests/` covers the schemas, ingest, cleanup, health, the live consumer (including offset-commit ordering and the Redis timestamp guard), and the API (including history routing with Snowflake mocked). The consumer and live API tests need a Redis instance (`TEST_REDIS_URL`).
+- **Snowflake credentials.** Compose mounts `SNOWFLAKE_KEY_HOST_PATH` into the API container at `/run/secrets/snowflake_api_key.pem` and sets `SNOWFLAKE_PRIVATE_KEY_PATH` to that path. The host PEM must be readable by the container user (`appuser`). See [Snowflake setup](snowflake-setup.md).
+- **Score config in the API image.** The API Dockerfile copies [`config/`](../config/) so live scoring can load `environmental_score.v1.json` at runtime.
+- **Tests.** `tests/` covers the schemas, ingest, cleanup, health, the live consumer (including offset-commit ordering and the Redis timestamp guard), and the API (including history routing with Snowflake mocked and environmental score unit tests). The consumer and live API tests need a Redis instance (`TEST_REDIS_URL`).

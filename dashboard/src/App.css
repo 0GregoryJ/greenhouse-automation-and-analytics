@@ -177,6 +177,179 @@
   color: var(--muted);
 }
 
+/* Environmental score card */
+
+.score-card {
+  margin-bottom: 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.score-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.score-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.score-title {
+  margin-top: 2px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.score-gateway {
+  min-width: 140px;
+}
+
+.score-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.score-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-number {
+  font-size: 3.25rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.score-unavailable-text {
+  color: var(--muted);
+}
+
+.score-denom {
+  font-size: 1.1rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.score-meta-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.score-version {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.score-gauge {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+  margin-bottom: 14px;
+}
+
+.score-gauge span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.score-gauge span.is-empty {
+  width: 0 !important;
+  background: transparent;
+}
+
+.score-components {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.score-components li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.score-components strong {
+  color: var(--text);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-footnote,
+.score-muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.pill-score-favorable {
+  color: var(--live);
+  background: var(--live-bg);
+}
+
+.pill-score-fair {
+  color: var(--text);
+  background: var(--selected);
+}
+
+.pill-score-watch {
+  color: var(--stale);
+  background: var(--stale-bg);
+}
+
+.pill-score-poor,
+.pill-score-unavailable {
+  color: var(--offline);
+  background: var(--offline-bg);
+}
+
+.history-mode {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.history-controls-score {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
 /* Cards */
 
 .grid {
@@ -671,7 +844,8 @@
     gap: 12px;
   }
 
-  .tabs {
+  .tabs,
+  .history-mode {
     align-self: stretch;
   }
 
@@ -688,6 +862,21 @@
 
   .view-toolbar {
     flex-direction: column;
+  }
+
+  .score-card-head,
+  .score-main,
+  .score-meta-block {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .score-number {
+    font-size: 2.75rem;
+  }
+
+  .score-components {
+    grid-template-columns: 1fr;
   }
 
   .history-controls {

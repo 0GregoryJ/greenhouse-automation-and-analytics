@@ -4574,3 +4574,945 @@ where valid_unique_reading_count is null
 [0m00:39:53.888855 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10bea4170>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c154770>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10dffbad0>]}
 [0m00:39:53.889032 [debug] [MainThread]: Flushing usage events
 [0m00:39:54.289161 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m20:46:21.289246 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x108b816a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10a57e710>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10a57e990>]}
+
+
+============================== 20:46:21.292340 | 519312e8-7cb5-4e68-b756-47fbd9dd41b5 ==============================
+[0m20:46:21.292340 [info ] [MainThread]: Running with dbt=1.13.0-rc1
+[0m20:46:21.292684 [debug] [MainThread]: running dbt with arguments {'empty': 'False', 'use_colors': 'True', 'target_path': 'None', 'no_print': 'None', 'hints_enabled': 'True', 'send_anonymous_usage_stats': 'True', 'printer_width': '80', 'partial_parse': 'True', 'log_format': 'default', 'log_cache_events': 'False', 'profiles_dir': '/Users/gregoryjoshua/.dbt', 'invocation_command': 'dbt seed --select environmental_score_rules', 'fail_fast': 'False', 'use_experimental_parser': 'False', 'cache_selected_only': 'False', 'maximum_seed_size_mib': '1', 'log_path': '/Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/logs', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'indirect_selection': 'eager', 'quiet': 'False', 'debug': 'False', 'static_parser': 'True', 'version_check': 'True', 'write_json': 'True', 'warn_error': 'None', 'introspect': 'True'}
+[0m20:46:21.292916 [debug] [MainThread]: Tracking: tracking
+[0m20:46:21.541989 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m20:46:21.542320 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m20:46:21.542491 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m20:46:21.705223 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'project_id', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10acfdf30>]}
+[0m20:46:21.735679 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'adapter_info', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10b05ff00>]}
+[0m20:46:21.736628 [info ] [MainThread]: Registered adapter: snowflake=1.12.5
+[0m20:46:21.819575 [debug] [MainThread]: checksum: c7a5a50a5fd40c6064fab6579648b945bc1600075318ee408521527386663ab6, vars: {}, profile: warehouse, target: dev, version: 1.13.0rc1
+[0m20:46:21.917428 [debug] [MainThread]: Partial parsing enabled: 0 files deleted, 1 files added, 0 files changed.
+[0m20:46:21.917814 [debug] [MainThread]: Partial parsing: added file: greenhouse_analytics://seeds/environmental_score_rules.csv
+[0m20:46:22.053133 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'load_project', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10af26350>]}
+[0m20:46:22.124265 [debug] [MainThread]: Wrote artifact WritableManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/manifest.json
+[0m20:46:22.126255 [debug] [MainThread]: Wrote artifact SemanticManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/semantic_manifest.json
+[0m20:46:22.141139 [debug] [MainThread]: Wrote artifact OsiDocument to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/osi_document.json
+[0m20:46:22.150294 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'resource_counts', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c2eb7a0>]}
+[0m20:46:22.150558 [info ] [MainThread]: Found 6 models, 38 data tests, 1 seed, 1 source, 563 macros
+[0m20:46:22.150754 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c3c10f0>]}
+[0m20:46:22.151763 [info ] [MainThread]: 
+[0m20:46:22.151959 [info ] [MainThread]: Concurrency: 1 threads (target='dev')
+[0m20:46:22.152105 [info ] [MainThread]: 
+[0m20:46:22.152364 [debug] [MainThread]: Acquiring new snowflake connection 'master'
+[0m20:46:22.152791 [debug] [ThreadPool]: Acquiring new snowflake connection 'list_GREENHOUSE_ANALYTICS'
+[0m20:46:22.160102 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS"
+[0m20:46:22.160317 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS: show terse schemas in database GREENHOUSE_ANALYTICS
+    limit 10000
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS"} */
+[0m20:46:22.160483 [debug] [ThreadPool]: Opening a new connection, currently in state init
+[0m20:46:24.009827 [debug] [ThreadPool]: SQL status: SUCCESS 5 in 1.849 seconds
+[0m20:46:24.020976 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS, now create_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT)
+[0m20:46:24.021476 [debug] [ThreadPool]: Creating schema "database: "GREENHOUSE_ANALYTICS"
+schema: "GREENHOUSE_DBT"
+"
+[0m20:46:24.024842 [debug] [ThreadPool]: Using snowflake connection "create_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"
+[0m20:46:24.025056 [debug] [ThreadPool]: On create_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT: create schema if not exists GREENHOUSE_ANALYTICS.GREENHOUSE_DBT
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "create_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"} */
+[0m20:46:24.633059 [debug] [ThreadPool]: SQL status: SUCCESS 1 in 0.608 seconds
+[0m20:46:24.636622 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly create_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate)
+[0m20:46:24.643226 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"
+[0m20:46:24.643439 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_intermediate
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"} */;
+[0m20:46:25.743017 [debug] [ThreadPool]: SQL status: SUCCESS 2 in 1.099 seconds
+[0m20:46:25.748019 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"
+[0m20:46:25.748406 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_intermediate
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"} */
+[0m20:46:26.318160 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.569 seconds
+[0m20:46:26.323441 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT)
+[0m20:46:26.326526 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"
+[0m20:46:26.327053 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"} */;
+[0m20:46:26.928593 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.601 seconds
+[0m20:46:26.934187 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"
+[0m20:46:26.934839 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"} */
+[0m20:46:27.102814 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.167 seconds
+[0m20:46:27.107693 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging)
+[0m20:46:27.111067 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"
+[0m20:46:27.111905 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_staging
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"} */;
+[0m20:46:27.661532 [debug] [ThreadPool]: SQL status: SUCCESS 1 in 0.549 seconds
+[0m20:46:27.670653 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"
+[0m20:46:27.671315 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_staging
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"} */
+[0m20:46:28.303147 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.631 seconds
+[0m20:46:28.306264 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts)
+[0m20:46:28.308425 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"
+[0m20:46:28.308821 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_marts
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"} */;
+[0m20:46:28.938596 [debug] [ThreadPool]: SQL status: SUCCESS 3 in 0.629 seconds
+[0m20:46:28.942728 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"
+[0m20:46:28.943153 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_marts
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"} */
+[0m20:46:29.069248 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.126 seconds
+[0m20:46:29.071313 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c361980>]}
+[0m20:46:29.074085 [debug] [Thread-1 (]: Began running node seed.greenhouse_analytics.environmental_score_rules
+[0m20:46:29.074469 [info ] [Thread-1 (]: 1 of 1 START seed file GREENHOUSE_DBT.environmental_score_rules ................ [RUN]
+[0m20:46:29.074802 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts, now seed.greenhouse_analytics.environmental_score_rules)
+[0m20:46:29.075063 [debug] [Thread-1 (]: Began compiling node seed.greenhouse_analytics.environmental_score_rules
+[0m20:46:29.075319 [debug] [Thread-1 (]: Began executing node seed.greenhouse_analytics.environmental_score_rules
+[0m20:46:29.096114 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m20:46:29.096382 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: create transient table GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules (score_version text,measurement_type text,unit text,weight float8,target_min integer,target_max integer,tolerance_below integer,tolerance_above integer,valid_min integer,valid_max integer)
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */
+[0m20:46:29.491078 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.394 seconds
+[0m20:46:29.525014 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m20:46:29.525466 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: BEGIN
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */
+[0m20:46:29.745547 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.219 seconds
+[0m20:46:29.747568 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m20:46:29.748282 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: insert overwrite into GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules (score_version, measurement_type, unit, weight, target_min, target_max, tolerance_below, tolerance_above, valid_min, valid_max) values
+            (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */...
+[0m20:46:31.995327 [debug] [Thread-1 (]: SQL status: SUCCESS 3 in 2.246 seconds
+[0m20:46:31.998765 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m20:46:31.999629 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: COMMIT
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */
+[0m20:46:32.503337 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.503 seconds
+[0m20:46:32.521186 [debug] [Thread-1 (]: Writing runtime SQL for node "seed.greenhouse_analytics.environmental_score_rules"
+[0m20:46:32.557536 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '519312e8-7cb5-4e68-b756-47fbd9dd41b5', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c41c110>]}
+[0m20:46:32.559787 [info ] [Thread-1 (]: 1 of 1 OK loaded seed file GREENHOUSE_DBT.environmental_score_rules ............ [[32mINSERT 3[0m in 3.48s]
+[0m20:46:32.561118 [debug] [Thread-1 (]: Finished running node seed.greenhouse_analytics.environmental_score_rules
+[0m20:46:32.565927 [debug] [MainThread]: Connection 'master' was properly closed.
+[0m20:46:32.566179 [debug] [MainThread]: Connection 'seed.greenhouse_analytics.environmental_score_rules' was left open.
+[0m20:46:32.566389 [debug] [MainThread]: On seed.greenhouse_analytics.environmental_score_rules: Close
+[0m20:46:32.795417 [info ] [MainThread]: 
+[0m20:46:32.796782 [info ] [MainThread]: Finished running 1 seed in 0 hours 0 minutes and 10.64 seconds (10.64s).
+[0m20:46:32.798903 [debug] [MainThread]: Command end result
+[0m20:46:32.855319 [debug] [MainThread]: Wrote artifact WritableManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/manifest.json
+[0m20:46:32.858369 [debug] [MainThread]: Wrote artifact SemanticManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/semantic_manifest.json
+[0m20:46:32.859944 [debug] [MainThread]: Wrote artifact OsiDocument to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/osi_document.json
+[0m20:46:32.865018 [debug] [MainThread]: Wrote artifact RunExecutionResult to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/run_results.json
+[0m20:46:32.865228 [info ] [MainThread]: 
+[0m20:46:32.865502 [info ] [MainThread]: [32mCompleted successfully[0m
+[0m20:46:32.865676 [info ] [MainThread]: 
+[0m20:46:32.865889 [info ] [MainThread]: Done. PASS=1 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=1
+[0m20:46:32.883990 [debug] [MainThread]: Resource report: {"command_name": "seed", "command_success": true, "command_wall_clock_time": 11.658301, "process_in_blocks": "0", "process_kernel_time": 0.377521, "process_mem_max_rss": "180158464", "process_out_blocks": "0", "process_user_time": 1.589252}
+[0m20:46:32.884792 [debug] [MainThread]: Command `dbt seed` succeeded at 20:46:32.884708 after 11.66 seconds
+[0m20:46:32.885231 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c434310>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c43c690>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10c43cc30>]}
+[0m20:46:32.885474 [debug] [MainThread]: Flushing usage events
+[0m20:46:33.282115 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m21:11:28.731366 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d2116a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ebae850>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ebaead0>]}
+
+
+============================== 21:11:28.734534 | 07bdf55b-1aaf-4bbe-b274-9c576f14fa9f ==============================
+[0m21:11:28.734534 [info ] [MainThread]: Running with dbt=1.13.0-rc1
+[0m21:11:28.734875 [debug] [MainThread]: running dbt with arguments {'introspect': 'True', 'partial_parse': 'True', 'quiet': 'False', 'send_anonymous_usage_stats': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'version_check': 'True', 'warn_error': 'None', 'profiles_dir': '/Users/gregoryjoshua/.dbt', 'static_parser': 'True', 'write_json': 'True', 'fail_fast': 'False', 'maximum_seed_size_mib': '1', 'indirect_selection': 'eager', 'cache_selected_only': 'False', 'hints_enabled': 'True', 'target_path': 'None', 'log_cache_events': 'False', 'log_format': 'default', 'invocation_command': 'dbt parse', 'log_path': '/Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/logs', 'use_colors': 'True', 'no_print': 'None', 'printer_width': '80', 'debug': 'False', 'use_experimental_parser': 'False', 'empty': 'None'}
+[0m21:11:28.735105 [debug] [MainThread]: Tracking: tracking
+[0m21:11:28.872228 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m21:11:28.872551 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m21:11:28.872716 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m21:11:29.015719 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'project_id', 'label': '07bdf55b-1aaf-4bbe-b274-9c576f14fa9f', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10f6542b0>]}
+[0m21:11:29.045991 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'adapter_info', 'label': '07bdf55b-1aaf-4bbe-b274-9c576f14fa9f', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10dd79590>]}
+[0m21:11:29.046712 [info ] [MainThread]: Registered adapter: snowflake=1.12.5
+[0m21:11:29.119441 [debug] [MainThread]: checksum: c7a5a50a5fd40c6064fab6579648b945bc1600075318ee408521527386663ab6, vars: {}, profile: warehouse, target: dev, version: 1.13.0rc1
+[0m21:11:29.224596 [debug] [MainThread]: Partial parsing enabled: 0 files deleted, 5 files added, 1 files changed.
+[0m21:11:29.224972 [debug] [MainThread]: Partial parsing: added file: greenhouse_analytics://models/marts/fct_environmental_score_daily.sql
+[0m21:11:29.225155 [debug] [MainThread]: Partial parsing: added file: greenhouse_analytics://tests/environmental_score_hourly_bounds.sql
+[0m21:11:29.225322 [debug] [MainThread]: Partial parsing: added file: greenhouse_analytics://tests/environmental_score_hourly_completeness.sql
+[0m21:11:29.225507 [debug] [MainThread]: Partial parsing: added file: greenhouse_analytics://seeds/seeds.yml
+[0m21:11:29.225658 [debug] [MainThread]: Partial parsing: added file: greenhouse_analytics://models/marts/fct_environmental_score_hourly.sql
+[0m21:11:29.225958 [debug] [MainThread]: Partial parsing: updated file: greenhouse_analytics://models/marts/marts.yml
+[0m21:11:30.014399 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'load_project', 'label': '07bdf55b-1aaf-4bbe-b274-9c576f14fa9f', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x110773a50>]}
+[0m21:11:30.016734 [info ] [MainThread]: Performance info: /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/perf_info.json
+[0m21:11:30.093180 [debug] [MainThread]: Wrote artifact WritableManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/manifest.json
+[0m21:11:30.095677 [debug] [MainThread]: Wrote artifact SemanticManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/semantic_manifest.json
+[0m21:11:30.108574 [debug] [MainThread]: Wrote artifact OsiDocument to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/osi_document.json
+[0m21:11:30.111122 [debug] [MainThread]: Resource report: {"command_name": "parse", "command_success": true, "command_wall_clock_time": 1.442773, "process_in_blocks": "0", "process_kernel_time": 0.265339, "process_mem_max_rss": "168804352", "process_out_blocks": "0", "process_user_time": 1.564584}
+[0m21:11:30.111714 [debug] [MainThread]: Command `dbt parse` succeeded at 21:11:30.111659 after 1.44 seconds
+[0m21:11:30.111924 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x110358d70>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x110358b90>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10eb51710>]}
+[0m21:11:30.112121 [debug] [MainThread]: Flushing usage events
+[0m21:11:30.484594 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m21:11:52.860538 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10b4c96a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ceca710>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ceca990>]}
+
+
+============================== 21:11:52.863591 | 37a82055-031e-4455-b481-a08414fedbe4 ==============================
+[0m21:11:52.863591 [info ] [MainThread]: Running with dbt=1.13.0-rc1
+[0m21:11:52.863939 [debug] [MainThread]: running dbt with arguments {'cache_selected_only': 'False', 'send_anonymous_usage_stats': 'True', 'no_print': 'None', 'partial_parse': 'True', 'use_colors': 'True', 'static_parser': 'True', 'empty': 'False', 'invocation_command': 'dbt build', 'introspect': 'True', 'log_format': 'default', 'hints_enabled': 'True', 'warn_error': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'profiles_dir': '/Users/gregoryjoshua/.dbt', 'log_cache_events': 'False', 'debug': 'False', 'use_experimental_parser': 'False', 'target_path': 'None', 'printer_width': '80', 'maximum_seed_size_mib': '1', 'fail_fast': 'False', 'indirect_selection': 'eager', 'log_path': '/Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/logs', 'quiet': 'False', 'version_check': 'True', 'write_json': 'True'}
+[0m21:11:52.864162 [debug] [MainThread]: Tracking: tracking
+[0m21:11:52.983745 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m21:11:52.984175 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m21:11:52.984359 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m21:11:53.105219 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'project_id', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d645f30>]}
+[0m21:11:53.135005 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'adapter_info', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d9a7f00>]}
+[0m21:11:53.135751 [info ] [MainThread]: Registered adapter: snowflake=1.12.5
+[0m21:11:53.208663 [debug] [MainThread]: checksum: c7a5a50a5fd40c6064fab6579648b945bc1600075318ee408521527386663ab6, vars: {}, profile: warehouse, target: dev, version: 1.13.0rc1
+[0m21:11:53.311385 [debug] [MainThread]: Partial parsing enabled: 0 files deleted, 0 files added, 0 files changed.
+[0m21:11:53.311633 [debug] [MainThread]: Nothing changed, skipping partial parsing.
+[0m21:11:53.311788 [debug] [MainThread]: Partial parsing enabled, no changes found, skipping parsing
+[0m21:11:53.317054 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'load_project', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10e9a7b50>]}
+[0m21:11:53.412169 [debug] [MainThread]: Wrote artifact WritableManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/manifest.json
+[0m21:11:53.413856 [debug] [MainThread]: Wrote artifact SemanticManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/semantic_manifest.json
+[0m21:11:53.424554 [debug] [MainThread]: Wrote artifact OsiDocument to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/osi_document.json
+[0m21:11:53.442252 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'resource_counts', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ec27110>]}
+[0m21:11:53.442518 [info ] [MainThread]: Found 8 models, 56 data tests, 1 seed, 1 source, 563 macros
+[0m21:11:53.445237 [info ] [MainThread]: 
+[0m21:11:53.445441 [info ] [MainThread]: Concurrency: 1 threads (target='dev')
+[0m21:11:53.445597 [info ] [MainThread]: 
+[0m21:11:53.445882 [debug] [MainThread]: Acquiring new snowflake connection 'master'
+[0m21:11:53.448515 [debug] [ThreadPool]: Acquiring new snowflake connection 'list_GREENHOUSE_ANALYTICS'
+[0m21:11:53.458159 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS"
+[0m21:11:53.458380 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS: show terse schemas in database GREENHOUSE_ANALYTICS
+    limit 10000
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS"} */
+[0m21:11:53.458553 [debug] [ThreadPool]: Opening a new connection, currently in state init
+[0m21:11:55.478286 [debug] [ThreadPool]: SQL status: SUCCESS 6 in 2.019 seconds
+[0m21:11:55.489590 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS"
+[0m21:11:55.490422 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS: show terse schemas in database GREENHOUSE_ANALYTICS
+    limit 10000
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS"} */
+[0m21:11:55.799050 [debug] [ThreadPool]: SQL status: SUCCESS 6 in 0.308 seconds
+[0m21:11:55.801794 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS"
+[0m21:11:55.802146 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS: show terse schemas in database GREENHOUSE_ANALYTICS
+    limit 10000
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS"} */
+[0m21:11:56.145593 [debug] [ThreadPool]: SQL status: SUCCESS 6 in 0.343 seconds
+[0m21:11:56.148563 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS"
+[0m21:11:56.148901 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS: show terse schemas in database GREENHOUSE_ANALYTICS
+    limit 10000
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS"} */
+[0m21:11:56.683119 [debug] [ThreadPool]: SQL status: SUCCESS 6 in 0.534 seconds
+[0m21:11:56.688167 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging)
+[0m21:11:56.702062 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"
+[0m21:11:56.702466 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_staging
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"} */;
+[0m21:11:57.067129 [debug] [ThreadPool]: SQL status: SUCCESS 1 in 0.364 seconds
+[0m21:11:57.077748 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"
+[0m21:11:57.078274 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_staging
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging"} */
+[0m21:11:57.222288 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.143 seconds
+[0m21:11:57.227467 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_staging, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate)
+[0m21:11:57.231129 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"
+[0m21:11:57.231782 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_intermediate
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"} */;
+[0m21:11:57.476881 [debug] [ThreadPool]: SQL status: SUCCESS 2 in 0.245 seconds
+[0m21:11:57.480805 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"
+[0m21:11:57.481285 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_intermediate
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate"} */
+[0m21:11:57.771061 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.289 seconds
+[0m21:11:57.778717 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_intermediate, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts)
+[0m21:11:57.781981 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"
+[0m21:11:57.782539 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_marts
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"} */;
+[0m21:11:57.932130 [debug] [ThreadPool]: SQL status: SUCCESS 3 in 0.149 seconds
+[0m21:11:57.938081 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"
+[0m21:11:57.938703 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_marts
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts"} */
+[0m21:11:58.342331 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.403 seconds
+[0m21:11:58.345379 [debug] [ThreadPool]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT_marts, now list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT)
+[0m21:11:58.347443 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"
+[0m21:11:58.348036 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT: show objects in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT
+    limit 10000
+    
+
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"} */;
+[0m21:11:58.648862 [debug] [ThreadPool]: SQL status: SUCCESS 1 in 0.300 seconds
+[0m21:11:58.654328 [debug] [ThreadPool]: Using snowflake connection "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"
+[0m21:11:58.654688 [debug] [ThreadPool]: On list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT: show user functions in GREENHOUSE_ANALYTICS.GREENHOUSE_DBT
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "connection_name": "list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT"} */
+[0m21:11:58.958944 [debug] [ThreadPool]: SQL status: SUCCESS 0 in 0.304 seconds
+[0m21:11:58.964356 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ee4ecf0>]}
+[0m21:11:58.969619 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.int_sensor_event_audit
+[0m21:11:58.970400 [info ] [Thread-1 (]: 1 of 65 START sql view model GREENHOUSE_DBT_intermediate.int_sensor_event_audit  [RUN]
+[0m21:11:58.971005 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly list_GREENHOUSE_ANALYTICS_GREENHOUSE_DBT, now model.greenhouse_analytics.int_sensor_event_audit)
+[0m21:11:58.971469 [debug] [Thread-1 (]: Began compiling node model.greenhouse_analytics.int_sensor_event_audit
+[0m21:11:58.986247 [debug] [Thread-1 (]: Writing injected SQL for node "model.greenhouse_analytics.int_sensor_event_audit"
+[0m21:11:58.987532 [debug] [Thread-1 (]: Began executing node model.greenhouse_analytics.int_sensor_event_audit
+[0m21:11:59.031659 [debug] [Thread-1 (]: Writing runtime sql for node "model.greenhouse_analytics.int_sensor_event_audit"
+[0m21:11:59.032887 [debug] [Thread-1 (]: Using snowflake connection "model.greenhouse_analytics.int_sensor_event_audit"
+[0m21:11:59.033531 [debug] [Thread-1 (]: On model.greenhouse_analytics.int_sensor_event_audit: create or replace   view GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_intermediate.int_sensor_event_audit
+  
+  
+  
+  
+  as (
+    
+
+WITH source_events AS (
+    SELECT
+        EVENT:event_id::VARCHAR AS event_id,
+        EVENT:gateway_id::VARCHAR AS gateway_id,
+        EVENT:sensor_id::VARCHAR AS sensor_id,
+
+        TRY_TO_TIMESTAMP_TZ(
+            EVENT:timestamp::VARCHAR
+        ) AS measured_at,
+
+        EVENT:measurement_type::VARCHAR AS measurement_type,
+
+        TRY_TO_DOUBLE(
+            EVENT:value::VARCHAR
+        ) AS value,
+
+        EVENT:unit::VARCHAR AS unit,
+
+        EVENT:_kafka_topic::VARCHAR AS kafka_topic,
+        EVENT:_kafka_partition::INTEGER AS kafka_partition,
+        EVENT:_kafka_offset::BIGINT AS kafka_offset,
+
+        source_file,
+        source_file_row,
+        loaded_at
+
+    FROM GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS
+),
+
+ranked AS (
+    SELECT
+        *,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY event_id
+            ORDER BY
+                loaded_at DESC,
+                source_file DESC,
+                source_file_row DESC
+        ) AS event_rank
+
+    FROM source_events
+),
+
+audited AS (
+    SELECT
+        *,
+
+        IFF(
+            event_id IS NOT NULL
+            AND event_rank > 1,
+            TRUE,
+            FALSE
+        ) AS is_duplicate,
+
+        IFF(
+            event_id IS NOT NULL
+            AND gateway_id IS NOT NULL
+            AND sensor_id IS NOT NULL
+            AND measured_at IS NOT NULL
+            AND measurement_type IS NOT NULL
+            AND value IS NOT NULL
+            AND unit IS NOT NULL,
+            TRUE,
+            FALSE
+        ) AS is_valid
+
+    FROM ranked
+)
+
+SELECT
+    event_id,
+    gateway_id,
+    sensor_id,
+    measured_at,
+    measurement_type,
+    value,
+    unit,
+
+    kafka_topic,
+    kafka_partition,
+    kafka_offset,
+
+    source_file,
+    source_file_row,
+    loaded_at,
+
+    is_duplicate,
+    is_valid
+
+FROM audited
+  )
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "model.greenhouse_analytics.int_sensor_event_audit"} */;
+[0m21:11:59.196806 [debug] [Thread-1 (]: Snowflake adapter: Snowflake query id: 01c86bb7-0209-d9e2-0012-a47e00138012
+[0m21:11:59.197145 [debug] [Thread-1 (]: Snowflake adapter: Snowflake error: 003001 (42501): SQL access control error:
+Insufficient privileges to operate on view 'INT_SENSOR_EVENT_AUDIT'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_INTERMEDIATE.INT_SENSOR_EVENT_AUDIT. (request_id=ab6b683e-7af4-4595-8e76-de7c664c8305, sfqid=01c86bb7-0209-d9e2-0012-a47e00138012)
+[0m21:11:59.206810 [debug] [Thread-1 (]: Database Error in model int_sensor_event_audit (models/intermediate/int_sensor_event_audit.sql)
+  003001 (42501): SQL access control error:
+  Insufficient privileges to operate on view 'INT_SENSOR_EVENT_AUDIT'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_INTERMEDIATE.INT_SENSOR_EVENT_AUDIT. (request_id=ab6b683e-7af4-4595-8e76-de7c664c8305, sfqid=01c86bb7-0209-d9e2-0012-a47e00138012)
+  compiled code at target/run/greenhouse_analytics/models/intermediate/int_sensor_event_audit.sql
+[0m21:11:59.208248 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10eeaf1e0>]}
+[0m21:11:59.208672 [error] [Thread-1 (]: 1 of 65 ERROR creating sql view model GREENHOUSE_DBT_intermediate.int_sensor_event_audit  [[31mERROR[0m in 0.24s]
+[0m21:11:59.209006 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.int_sensor_event_audit
+[0m21:11:59.209222 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.stg_sensor_events
+[0m21:11:59.209510 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.int_sensor_event_audit' to be skipped because of status 'error'.  Reason: Database Error in model int_sensor_event_audit (models/intermediate/int_sensor_event_audit.sql)
+  003001 (42501): SQL access control error:
+  Insufficient privileges to operate on view 'INT_SENSOR_EVENT_AUDIT'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_INTERMEDIATE.INT_SENSOR_EVENT_AUDIT. (request_id=ab6b683e-7af4-4595-8e76-de7c664c8305, sfqid=01c86bb7-0209-d9e2-0012-a47e00138012)
+  compiled code at target/run/greenhouse_analytics/models/intermediate/int_sensor_event_audit.sql.
+[0m21:11:59.209778 [info ] [Thread-1 (]: 2 of 65 START sql view model GREENHOUSE_DBT_staging.stg_sensor_events .......... [RUN]
+[0m21:11:59.210467 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.greenhouse_analytics.int_sensor_event_audit, now model.greenhouse_analytics.stg_sensor_events)
+[0m21:11:59.210710 [debug] [Thread-1 (]: Began compiling node model.greenhouse_analytics.stg_sensor_events
+[0m21:11:59.212031 [debug] [Thread-1 (]: Writing injected SQL for node "model.greenhouse_analytics.stg_sensor_events"
+[0m21:11:59.212593 [debug] [Thread-1 (]: Began executing node model.greenhouse_analytics.stg_sensor_events
+[0m21:11:59.213932 [debug] [Thread-1 (]: Writing runtime sql for node "model.greenhouse_analytics.stg_sensor_events"
+[0m21:11:59.214409 [debug] [Thread-1 (]: Using snowflake connection "model.greenhouse_analytics.stg_sensor_events"
+[0m21:11:59.214646 [debug] [Thread-1 (]: On model.greenhouse_analytics.stg_sensor_events: create or replace   view GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_staging.stg_sensor_events
+  
+  
+  
+  
+  as (
+    WITH source_events AS (
+    SELECT
+        EVENT:event_id::VARCHAR AS event_id,
+        EVENT:schema_version::INTEGER AS schema_version,
+        EVENT:gateway_id::VARCHAR AS gateway_id,
+        EVENT:sensor_id::VARCHAR AS sensor_id,
+        TRY_TO_TIMESTAMP_TZ(EVENT:timestamp::VARCHAR) AS measured_at,
+        EVENT:measurement_type::VARCHAR AS measurement_type,
+        TRY_TO_DOUBLE(EVENT:value::VARCHAR) AS value,
+        EVENT:unit::VARCHAR AS unit,
+
+        EVENT:_kafka_topic::VARCHAR AS kafka_topic,
+        EVENT:_kafka_partition::INTEGER AS kafka_partition,
+        EVENT:_kafka_offset::BIGINT AS kafka_offset,
+
+        SOURCE_FILE AS source_file,
+        SOURCE_FILE_ROW AS source_file_row,
+        LOADED_AT AS loaded_at
+
+    FROM GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS
+),
+
+deduplicated AS (
+    SELECT *
+    FROM source_events
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY event_id
+        ORDER BY loaded_at DESC, source_file DESC, source_file_row DESC
+    ) = 1
+)
+
+SELECT *
+FROM deduplicated
+  )
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "model.greenhouse_analytics.stg_sensor_events"} */;
+[0m21:11:59.344486 [debug] [Thread-1 (]: Snowflake adapter: Snowflake query id: 01c86bb7-0209-d9e4-0012-a47e00133a4e
+[0m21:11:59.345165 [debug] [Thread-1 (]: Snowflake adapter: Snowflake error: 003001 (42501): SQL access control error:
+Insufficient privileges to operate on view 'STG_SENSOR_EVENTS'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_STAGING.STG_SENSOR_EVENTS. (request_id=f7a62254-2280-49da-ac14-7e4f28faffc2, sfqid=01c86bb7-0209-d9e4-0012-a47e00133a4e)
+[0m21:11:59.352467 [debug] [Thread-1 (]: Database Error in model stg_sensor_events (models/staging/stg_sensor_events.sql)
+  003001 (42501): SQL access control error:
+  Insufficient privileges to operate on view 'STG_SENSOR_EVENTS'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_STAGING.STG_SENSOR_EVENTS. (request_id=f7a62254-2280-49da-ac14-7e4f28faffc2, sfqid=01c86bb7-0209-d9e4-0012-a47e00133a4e)
+  compiled code at target/run/greenhouse_analytics/models/staging/stg_sensor_events.sql
+[0m21:11:59.353008 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ef91910>]}
+[0m21:11:59.353624 [error] [Thread-1 (]: 2 of 65 ERROR creating sql view model GREENHOUSE_DBT_staging.stg_sensor_events . [[31mERROR[0m in 0.14s]
+[0m21:11:59.354090 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.stg_sensor_events
+[0m21:11:59.354433 [debug] [Thread-1 (]: Began running node seed.greenhouse_analytics.environmental_score_rules
+[0m21:11:59.354821 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.stg_sensor_events' to be skipped because of status 'error'.  Reason: Database Error in model stg_sensor_events (models/staging/stg_sensor_events.sql)
+  003001 (42501): SQL access control error:
+  Insufficient privileges to operate on view 'STG_SENSOR_EVENTS'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_STAGING.STG_SENSOR_EVENTS. (request_id=f7a62254-2280-49da-ac14-7e4f28faffc2, sfqid=01c86bb7-0209-d9e4-0012-a47e00133a4e)
+  compiled code at target/run/greenhouse_analytics/models/staging/stg_sensor_events.sql.
+[0m21:11:59.355281 [info ] [Thread-1 (]: 3 of 65 START seed file GREENHOUSE_DBT.environmental_score_rules ............... [RUN]
+[0m21:11:59.355996 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.greenhouse_analytics.stg_sensor_events, now seed.greenhouse_analytics.environmental_score_rules)
+[0m21:11:59.356358 [debug] [Thread-1 (]: Began compiling node seed.greenhouse_analytics.environmental_score_rules
+[0m21:11:59.356650 [debug] [Thread-1 (]: Began executing node seed.greenhouse_analytics.environmental_score_rules
+[0m21:11:59.389812 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m21:11:59.390094 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: BEGIN
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */
+[0m21:11:59.566873 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.176 seconds
+[0m21:11:59.568622 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m21:11:59.569367 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: insert overwrite into GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules (score_version, measurement_type, unit, weight, target_min, target_max, tolerance_below, tolerance_above, valid_min, valid_max) values
+            (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */...
+[0m21:12:00.933014 [debug] [Thread-1 (]: SQL status: SUCCESS 3 in 1.363 seconds
+[0m21:12:00.934079 [debug] [Thread-1 (]: Using snowflake connection "seed.greenhouse_analytics.environmental_score_rules"
+[0m21:12:00.934749 [debug] [Thread-1 (]: On seed.greenhouse_analytics.environmental_score_rules: COMMIT
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "seed.greenhouse_analytics.environmental_score_rules"} */
+[0m21:12:01.414811 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.479 seconds
+[0m21:12:01.423230 [debug] [Thread-1 (]: Writing runtime SQL for node "seed.greenhouse_analytics.environmental_score_rules"
+[0m21:12:01.446713 [debug] [Thread-1 (]: Sending event: {'category': 'dbt', 'action': 'run_model', 'label': '37a82055-031e-4455-b481-a08414fedbe4', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ee7f120>]}
+[0m21:12:01.447300 [info ] [Thread-1 (]: 3 of 65 OK loaded seed file GREENHOUSE_DBT.environmental_score_rules ........... [[32mINSERT 3[0m in 2.09s]
+[0m21:12:01.447807 [debug] [Thread-1 (]: Finished running node seed.greenhouse_analytics.environmental_score_rules
+[0m21:12:01.448161 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_event_audit_is_duplicate.55a0e8e0c4
+[0m21:12:01.448588 [info ] [Thread-1 (]: 4 of 65 SKIP test not_null_int_sensor_event_audit_is_duplicate ................. [[33mSKIP[0m]
+[0m21:12:01.449153 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_event_audit_is_duplicate.55a0e8e0c4
+[0m21:12:01.449492 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_event_audit_is_valid.9e6cf9541a
+[0m21:12:01.450063 [info ] [Thread-1 (]: 5 of 65 SKIP test not_null_int_sensor_event_audit_is_valid ..................... [[33mSKIP[0m]
+[0m21:12:01.450394 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_event_audit_is_valid.9e6cf9541a
+[0m21:12:01.450694 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_event_audit_loaded_at.7872cba584
+[0m21:12:01.450965 [info ] [Thread-1 (]: 6 of 65 SKIP test not_null_int_sensor_event_audit_loaded_at .................... [[33mSKIP[0m]
+[0m21:12:01.449753 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_event_audit_is_duplicate.55a0e8e0c4' to be skipped because of status 'skipped'. 
+[0m21:12:01.451551 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_event_audit_is_valid.9e6cf9541a' to be skipped because of status 'skipped'. 
+[0m21:12:01.451255 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_event_audit_loaded_at.7872cba584
+[0m21:12:01.451964 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_event_audit_source_file.6354274ebf
+[0m21:12:01.452555 [info ] [Thread-1 (]: 7 of 65 SKIP test not_null_int_sensor_event_audit_source_file .................. [[33mSKIP[0m]
+[0m21:12:01.452862 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_event_audit_source_file.6354274ebf
+[0m21:12:01.453322 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_event_audit_source_file_row.72773b9f0b
+[0m21:12:01.452206 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_event_audit_loaded_at.7872cba584' to be skipped because of status 'skipped'. 
+[0m21:12:01.454085 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_event_audit_source_file.6354274ebf' to be skipped because of status 'skipped'. 
+[0m21:12:01.453630 [info ] [Thread-1 (]: 8 of 65 SKIP test not_null_int_sensor_event_audit_source_file_row .............. [[33mSKIP[0m]
+[0m21:12:01.454500 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_event_audit_source_file_row.72773b9f0b
+[0m21:12:01.454845 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_event_id.b4b4d3560d
+[0m21:12:01.455340 [info ] [Thread-1 (]: 9 of 65 SKIP test not_null_stg_sensor_events_event_id .......................... [[33mSKIP[0m]
+[0m21:12:01.455635 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_event_id.b4b4d3560d
+[0m21:12:01.456555 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_gateway_id.04c42fff1c
+[0m21:12:01.455069 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_event_audit_source_file_row.72773b9f0b' to be skipped because of status 'skipped'. 
+[0m21:12:01.457125 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_event_id.b4b4d3560d' to be skipped because of status 'skipped'. 
+[0m21:12:01.456802 [info ] [Thread-1 (]: 10 of 65 SKIP test not_null_stg_sensor_events_gateway_id ....................... [[33mSKIP[0m]
+[0m21:12:01.457461 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_gateway_id.04c42fff1c
+[0m21:12:01.457728 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_loaded_at.59cee655ae
+[0m21:12:01.458190 [info ] [Thread-1 (]: 11 of 65 SKIP test not_null_stg_sensor_events_loaded_at ........................ [[33mSKIP[0m]
+[0m21:12:01.458610 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_loaded_at.59cee655ae
+[0m21:12:01.458868 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_measurement_type.a414e9becf
+[0m21:12:01.457937 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_gateway_id.04c42fff1c' to be skipped because of status 'skipped'. 
+[0m21:12:01.459380 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_loaded_at.59cee655ae' to be skipped because of status 'skipped'. 
+[0m21:12:01.459111 [info ] [Thread-1 (]: 12 of 65 SKIP test not_null_stg_sensor_events_measurement_type ................. [[33mSKIP[0m]
+[0m21:12:01.459709 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_measurement_type.a414e9becf
+[0m21:12:01.459958 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_schema_version.236fe6b31b
+[0m21:12:01.460194 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_measurement_type.a414e9becf' to be skipped because of status 'skipped'. 
+[0m21:12:01.460592 [info ] [Thread-1 (]: 13 of 65 SKIP test not_null_stg_sensor_events_schema_version ................... [[33mSKIP[0m]
+[0m21:12:01.461435 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_schema_version.236fe6b31b
+[0m21:12:01.461719 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_sensor_id.e921f7fb0b
+[0m21:12:01.462011 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_schema_version.236fe6b31b' to be skipped because of status 'skipped'. 
+[0m21:12:01.462279 [info ] [Thread-1 (]: 14 of 65 SKIP test not_null_stg_sensor_events_sensor_id ........................ [[33mSKIP[0m]
+[0m21:12:01.462632 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_sensor_id.e921f7fb0b
+[0m21:12:01.462884 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_stg_sensor_events_source_file.8d9fa86fcd
+[0m21:12:01.463081 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_sensor_id.e921f7fb0b' to be skipped because of status 'skipped'. 
+[0m21:12:01.463318 [info ] [Thread-1 (]: 15 of 65 SKIP test not_null_stg_sensor_events_source_file ...................... [[33mSKIP[0m]
+[0m21:12:01.463796 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_stg_sensor_events_source_file.8d9fa86fcd
+[0m21:12:01.464063 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.unique_stg_sensor_events_event_id.8eafa15672
+[0m21:12:01.464251 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_stg_sensor_events_source_file.8d9fa86fcd' to be skipped because of status 'skipped'. 
+[0m21:12:01.464534 [info ] [Thread-1 (]: 16 of 65 SKIP test unique_stg_sensor_events_event_id ........................... [[33mSKIP[0m]
+[0m21:12:01.464842 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.unique_stg_sensor_events_event_id.8eafa15672
+[0m21:12:01.465076 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356
+[0m21:12:01.465263 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.unique_stg_sensor_events_event_id.8eafa15672' to be skipped because of status 'skipped'. 
+[0m21:12:01.465492 [info ] [Thread-1 (]: 17 of 65 START test not_null_environmental_score_rules_measurement_type ........ [RUN]
+[0m21:12:01.465901 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly seed.greenhouse_analytics.environmental_score_rules, now test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356)
+[0m21:12:01.466132 [debug] [Thread-1 (]: Began compiling node test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356
+[0m21:12:01.476486 [debug] [Thread-1 (]: Writing injected SQL for node "test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356"
+[0m21:12:01.477137 [debug] [Thread-1 (]: Began executing node test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356
+[0m21:12:01.488200 [debug] [Thread-1 (]: Writing runtime sql for node "test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356"
+[0m21:12:01.488778 [debug] [Thread-1 (]: Using snowflake connection "test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356"
+[0m21:12:01.488998 [debug] [Thread-1 (]: On test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356: select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select measurement_type
+from GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules
+where measurement_type is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356"} */
+[0m21:12:03.144334 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 1.655 seconds
+[0m21:12:03.156747 [info ] [Thread-1 (]: 17 of 65 PASS not_null_environmental_score_rules_measurement_type .............. [[32mPASS[0m in 1.69s]
+[0m21:12:03.157577 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356
+[0m21:12:03.158426 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d
+[0m21:12:03.158844 [info ] [Thread-1 (]: 18 of 65 START test not_null_environmental_score_rules_score_version ........... [RUN]
+[0m21:12:03.159243 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.greenhouse_analytics.not_null_environmental_score_rules_measurement_type.5294eee356, now test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d)
+[0m21:12:03.159625 [debug] [Thread-1 (]: Began compiling node test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d
+[0m21:12:03.168164 [debug] [Thread-1 (]: Writing injected SQL for node "test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d"
+[0m21:12:03.169220 [debug] [Thread-1 (]: Began executing node test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d
+[0m21:12:03.171697 [debug] [Thread-1 (]: Writing runtime sql for node "test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d"
+[0m21:12:03.172458 [debug] [Thread-1 (]: Using snowflake connection "test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d"
+[0m21:12:03.172834 [debug] [Thread-1 (]: On test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d: select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select score_version
+from GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules
+where score_version is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d"} */
+[0m21:12:03.976180 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.803 seconds
+[0m21:12:03.981422 [info ] [Thread-1 (]: 18 of 65 PASS not_null_environmental_score_rules_score_version ................. [[32mPASS[0m in 0.82s]
+[0m21:12:03.982571 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d
+[0m21:12:03.983193 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75
+[0m21:12:03.983863 [info ] [Thread-1 (]: 19 of 65 START test not_null_environmental_score_rules_tolerance_above ......... [RUN]
+[0m21:12:03.985034 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.greenhouse_analytics.not_null_environmental_score_rules_score_version.94d2d8564d, now test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75)
+[0m21:12:03.985592 [debug] [Thread-1 (]: Began compiling node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75
+[0m21:12:03.994620 [debug] [Thread-1 (]: Writing injected SQL for node "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75"
+[0m21:12:03.995511 [debug] [Thread-1 (]: Began executing node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75
+[0m21:12:03.997406 [debug] [Thread-1 (]: Writing runtime sql for node "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75"
+[0m21:12:03.998208 [debug] [Thread-1 (]: Using snowflake connection "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75"
+[0m21:12:03.998577 [debug] [Thread-1 (]: On test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75: select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select tolerance_above
+from GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules
+where tolerance_above is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75"} */
+[0m21:12:04.384432 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.385 seconds
+[0m21:12:04.388950 [info ] [Thread-1 (]: 19 of 65 PASS not_null_environmental_score_rules_tolerance_above ............... [[32mPASS[0m in 0.40s]
+[0m21:12:04.389883 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75
+[0m21:12:04.390474 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d
+[0m21:12:04.391060 [info ] [Thread-1 (]: 20 of 65 START test not_null_environmental_score_rules_tolerance_below ......... [RUN]
+[0m21:12:04.391735 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_above.86497aca75, now test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d)
+[0m21:12:04.392198 [debug] [Thread-1 (]: Began compiling node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d
+[0m21:12:04.402049 [debug] [Thread-1 (]: Writing injected SQL for node "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d"
+[0m21:12:04.402834 [debug] [Thread-1 (]: Began executing node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d
+[0m21:12:04.404679 [debug] [Thread-1 (]: Writing runtime sql for node "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d"
+[0m21:12:04.405392 [debug] [Thread-1 (]: Using snowflake connection "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d"
+[0m21:12:04.405782 [debug] [Thread-1 (]: On test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d: select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select tolerance_below
+from GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules
+where tolerance_below is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d"} */
+[0m21:12:05.761609 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 1.355 seconds
+[0m21:12:05.765601 [info ] [Thread-1 (]: 20 of 65 PASS not_null_environmental_score_rules_tolerance_below ............... [[32mPASS[0m in 1.37s]
+[0m21:12:05.766545 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d
+[0m21:12:05.767103 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6
+[0m21:12:05.768159 [info ] [Thread-1 (]: 21 of 65 START test not_null_environmental_score_rules_unit .................... [RUN]
+[0m21:12:05.769084 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.greenhouse_analytics.not_null_environmental_score_rules_tolerance_below.54a2b15c8d, now test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6)
+[0m21:12:05.769628 [debug] [Thread-1 (]: Began compiling node test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6
+[0m21:12:05.779255 [debug] [Thread-1 (]: Writing injected SQL for node "test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6"
+[0m21:12:05.780197 [debug] [Thread-1 (]: Began executing node test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6
+[0m21:12:05.782397 [debug] [Thread-1 (]: Writing runtime sql for node "test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6"
+[0m21:12:05.783337 [debug] [Thread-1 (]: Using snowflake connection "test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6"
+[0m21:12:05.783707 [debug] [Thread-1 (]: On test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6: select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select unit
+from GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules
+where unit is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6"} */
+[0m21:12:06.227542 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.443 seconds
+[0m21:12:06.232684 [info ] [Thread-1 (]: 21 of 65 PASS not_null_environmental_score_rules_unit .......................... [[32mPASS[0m in 0.46s]
+[0m21:12:06.233685 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6
+[0m21:12:06.234636 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b
+[0m21:12:06.235434 [info ] [Thread-1 (]: 22 of 65 START test not_null_environmental_score_rules_weight .................. [RUN]
+[0m21:12:06.236253 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.greenhouse_analytics.not_null_environmental_score_rules_unit.0a8122c5c6, now test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b)
+[0m21:12:06.236918 [debug] [Thread-1 (]: Began compiling node test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b
+[0m21:12:06.247507 [debug] [Thread-1 (]: Writing injected SQL for node "test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b"
+[0m21:12:06.248296 [debug] [Thread-1 (]: Began executing node test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b
+[0m21:12:06.250199 [debug] [Thread-1 (]: Writing runtime sql for node "test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b"
+[0m21:12:06.252521 [debug] [Thread-1 (]: Using snowflake connection "test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b"
+[0m21:12:06.252987 [debug] [Thread-1 (]: On test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b: select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+    
+  
+    
+    
+
+
+
+select weight
+from GREENHOUSE_ANALYTICS.GREENHOUSE_DBT.environmental_score_rules
+where weight is null
+
+
+
+  
+  
+      
+    ) dbt_internal_test
+/* {"app": "dbt", "dbt_version": "1.13.0rc1", "profile_name": "warehouse", "target_name": "dev", "node_id": "test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b"} */
+[0m21:12:06.587896 [debug] [Thread-1 (]: SQL status: SUCCESS 1 in 0.334 seconds
+[0m21:12:06.594164 [info ] [Thread-1 (]: 22 of 65 PASS not_null_environmental_score_rules_weight ........................ [[32mPASS[0m in 0.36s]
+[0m21:12:06.595835 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b
+[0m21:12:06.597238 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.int_sensor_readings
+[0m21:12:06.598059 [info ] [Thread-1 (]: 23 of 65 SKIP relation GREENHOUSE_DBT_intermediate.int_sensor_readings ......... [[33mSKIP[0m]
+[0m21:12:06.598971 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.int_sensor_readings
+[0m21:12:06.599566 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.int_sensor_readings' to be skipped because of status 'skipped'. 
+[0m21:12:06.601260 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_event_id.ca6ba195d3
+[0m21:12:06.601936 [info ] [Thread-1 (]: 24 of 65 SKIP test not_null_int_sensor_readings_event_id ....................... [[33mSKIP[0m]
+[0m21:12:06.602603 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_event_id.ca6ba195d3
+[0m21:12:06.603051 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_gateway_id.d52b48857a
+[0m21:12:06.603404 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_event_id.ca6ba195d3' to be skipped because of status 'skipped'. 
+[0m21:12:06.604164 [info ] [Thread-1 (]: 25 of 65 SKIP test not_null_int_sensor_readings_gateway_id ..................... [[33mSKIP[0m]
+[0m21:12:06.604863 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_gateway_id.d52b48857a
+[0m21:12:06.605336 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_measured_at_utc.6684f6bf94
+[0m21:12:06.606122 [info ] [Thread-1 (]: 26 of 65 SKIP test not_null_int_sensor_readings_measured_at_utc ................ [[33mSKIP[0m]
+[0m21:12:06.606574 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_measured_at_utc.6684f6bf94
+[0m21:12:06.606979 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_measurement_date_utc.7ac06c2c84
+[0m21:12:06.605698 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_gateway_id.d52b48857a' to be skipped because of status 'skipped'. 
+[0m21:12:06.607981 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_measured_at_utc.6684f6bf94' to be skipped because of status 'skipped'. 
+[0m21:12:06.607374 [info ] [Thread-1 (]: 27 of 65 SKIP test not_null_int_sensor_readings_measurement_date_utc ........... [[33mSKIP[0m]
+[0m21:12:06.608634 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_measurement_date_utc.7ac06c2c84
+[0m21:12:06.609042 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_measurement_hour_utc.2ebf3c5c80
+[0m21:12:06.609803 [info ] [Thread-1 (]: 28 of 65 SKIP test not_null_int_sensor_readings_measurement_hour_utc ........... [[33mSKIP[0m]
+[0m21:12:06.610252 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_measurement_hour_utc.2ebf3c5c80
+[0m21:12:06.610680 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_measurement_type.95bb54b7f1
+[0m21:12:06.609380 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_measurement_date_utc.7ac06c2c84' to be skipped because of status 'skipped'. 
+[0m21:12:06.611374 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_measurement_hour_utc.2ebf3c5c80' to be skipped because of status 'skipped'. 
+[0m21:12:06.611013 [info ] [Thread-1 (]: 29 of 65 SKIP test not_null_int_sensor_readings_measurement_type ............... [[33mSKIP[0m]
+[0m21:12:06.611781 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_measurement_type.95bb54b7f1
+[0m21:12:06.612116 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_sensor_id.20074f4233
+[0m21:12:06.612400 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_measurement_type.95bb54b7f1' to be skipped because of status 'skipped'. 
+[0m21:12:06.612755 [info ] [Thread-1 (]: 30 of 65 SKIP test not_null_int_sensor_readings_sensor_id ...................... [[33mSKIP[0m]
+[0m21:12:06.613226 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_sensor_id.20074f4233
+[0m21:12:06.613589 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_unit.2719dac7c0
+[0m21:12:06.613877 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_sensor_id.20074f4233' to be skipped because of status 'skipped'. 
+[0m21:12:06.614212 [info ] [Thread-1 (]: 31 of 65 SKIP test not_null_int_sensor_readings_unit ........................... [[33mSKIP[0m]
+[0m21:12:06.614659 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_unit.2719dac7c0
+[0m21:12:06.614996 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_int_sensor_readings_value.9357c9c75a
+[0m21:12:06.615682 [info ] [Thread-1 (]: 32 of 65 SKIP test not_null_int_sensor_readings_value .......................... [[33mSKIP[0m]
+[0m21:12:06.616193 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_int_sensor_readings_value.9357c9c75a
+[0m21:12:06.616512 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.unique_int_sensor_readings_event_id.d46508d4fb
+[0m21:12:06.615271 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_unit.2719dac7c0' to be skipped because of status 'skipped'. 
+[0m21:12:06.617118 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_int_sensor_readings_value.9357c9c75a' to be skipped because of status 'skipped'. 
+[0m21:12:06.616805 [info ] [Thread-1 (]: 33 of 65 SKIP test unique_int_sensor_readings_event_id ......................... [[33mSKIP[0m]
+[0m21:12:06.617607 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.unique_int_sensor_readings_event_id.d46508d4fb
+[0m21:12:06.618055 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.unique_int_sensor_readings_event_id.d46508d4fb' to be skipped because of status 'skipped'. 
+[0m21:12:06.619019 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.fct_sensor_daily
+[0m21:12:06.619422 [info ] [Thread-1 (]: 34 of 65 SKIP relation GREENHOUSE_DBT_marts.fct_sensor_daily ................... [[33mSKIP[0m]
+[0m21:12:06.619840 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.fct_sensor_daily
+[0m21:12:06.620294 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.fct_sensor_hourly
+[0m21:12:06.620559 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.fct_sensor_daily' to be skipped because of status 'skipped'. 
+[0m21:12:06.620865 [info ] [Thread-1 (]: 35 of 65 SKIP relation GREENHOUSE_DBT_marts.fct_sensor_hourly .................. [[33mSKIP[0m]
+[0m21:12:06.621475 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.fct_sensor_hourly
+[0m21:12:06.621804 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.fct_sensor_quality_daily
+[0m21:12:06.622051 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.fct_sensor_hourly' to be skipped because of status 'skipped'. 
+[0m21:12:06.622342 [info ] [Thread-1 (]: 36 of 65 SKIP relation GREENHOUSE_DBT_marts.fct_sensor_quality_daily ........... [[33mSKIP[0m]
+[0m21:12:06.622872 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.fct_sensor_quality_daily
+[0m21:12:06.623204 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.assert_unique_hourly_grain
+[0m21:12:06.623456 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.fct_sensor_quality_daily' to be skipped because of status 'skipped'. 
+[0m21:12:06.623748 [info ] [Thread-1 (]: 37 of 65 SKIP test assert_unique_hourly_grain .................................. [[33mSKIP[0m]
+[0m21:12:06.624187 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.assert_unique_hourly_grain
+[0m21:12:06.624459 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_avg_value.f95bdfdb1e
+[0m21:12:06.624671 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.assert_unique_hourly_grain' to be skipped because of status 'skipped'. 
+[0m21:12:06.624944 [info ] [Thread-1 (]: 38 of 65 SKIP test not_null_fct_sensor_hourly_avg_value ........................ [[33mSKIP[0m]
+[0m21:12:06.625290 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_avg_value.f95bdfdb1e
+[0m21:12:06.625562 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_gateway_id.e6664c36d3
+[0m21:12:06.625778 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_avg_value.f95bdfdb1e' to be skipped because of status 'skipped'. 
+[0m21:12:06.626038 [info ] [Thread-1 (]: 39 of 65 SKIP test not_null_fct_sensor_hourly_gateway_id ....................... [[33mSKIP[0m]
+[0m21:12:06.626493 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_gateway_id.e6664c36d3
+[0m21:12:06.626754 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_max_value.08d748fe1e
+[0m21:12:06.626966 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_gateway_id.e6664c36d3' to be skipped because of status 'skipped'. 
+[0m21:12:06.627219 [info ] [Thread-1 (]: 40 of 65 SKIP test not_null_fct_sensor_hourly_max_value ........................ [[33mSKIP[0m]
+[0m21:12:06.627556 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_max_value.08d748fe1e
+[0m21:12:06.627814 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_measurement_hour_utc.3a8d3a82da
+[0m21:12:06.628029 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_max_value.08d748fe1e' to be skipped because of status 'skipped'. 
+[0m21:12:06.628282 [info ] [Thread-1 (]: 41 of 65 SKIP test not_null_fct_sensor_hourly_measurement_hour_utc ............. [[33mSKIP[0m]
+[0m21:12:06.628599 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_measurement_hour_utc.3a8d3a82da
+[0m21:12:06.628846 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_measurement_type.a24df42e96
+[0m21:12:06.629052 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_measurement_hour_utc.3a8d3a82da' to be skipped because of status 'skipped'. 
+[0m21:12:06.629300 [info ] [Thread-1 (]: 42 of 65 SKIP test not_null_fct_sensor_hourly_measurement_type ................. [[33mSKIP[0m]
+[0m21:12:06.629623 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_measurement_type.a24df42e96
+[0m21:12:06.629873 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_min_value.9de2c8f794
+[0m21:12:06.630080 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_measurement_type.a24df42e96' to be skipped because of status 'skipped'. 
+[0m21:12:06.630322 [info ] [Thread-1 (]: 43 of 65 SKIP test not_null_fct_sensor_hourly_min_value ........................ [[33mSKIP[0m]
+[0m21:12:06.630637 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_min_value.9de2c8f794
+[0m21:12:06.630888 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_reading_count.2ccde6fe87
+[0m21:12:06.631092 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_min_value.9de2c8f794' to be skipped because of status 'skipped'. 
+[0m21:12:06.631336 [info ] [Thread-1 (]: 44 of 65 SKIP test not_null_fct_sensor_hourly_reading_count .................... [[33mSKIP[0m]
+[0m21:12:06.631683 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_reading_count.2ccde6fe87
+[0m21:12:06.631937 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_sensor_id.ce4ec7d755
+[0m21:12:06.632134 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_reading_count.2ccde6fe87' to be skipped because of status 'skipped'. 
+[0m21:12:06.632361 [info ] [Thread-1 (]: 45 of 65 SKIP test not_null_fct_sensor_hourly_sensor_id ........................ [[33mSKIP[0m]
+[0m21:12:06.632740 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_sensor_id.ce4ec7d755
+[0m21:12:06.633118 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_hourly_unit.23a2785fe4
+[0m21:12:06.633330 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_sensor_id.ce4ec7d755' to be skipped because of status 'skipped'. 
+[0m21:12:06.633558 [info ] [Thread-1 (]: 46 of 65 SKIP test not_null_fct_sensor_hourly_unit ............................. [[33mSKIP[0m]
+[0m21:12:06.633886 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_hourly_unit.23a2785fe4
+[0m21:12:06.634168 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_duplicate_record_count.628f5fa649
+[0m21:12:06.634589 [info ] [Thread-1 (]: 47 of 65 SKIP test not_null_fct_sensor_quality_daily_duplicate_record_count .... [[33mSKIP[0m]
+[0m21:12:06.634841 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_duplicate_record_count.628f5fa649
+[0m21:12:06.635272 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_invalid_record_count.787c34facb
+[0m21:12:06.634359 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_hourly_unit.23a2785fe4' to be skipped because of status 'skipped'. 
+[0m21:12:06.635991 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_quality_daily_duplicate_record_count.628f5fa649' to be skipped because of status 'skipped'. 
+[0m21:12:06.635631 [info ] [Thread-1 (]: 48 of 65 SKIP test not_null_fct_sensor_quality_daily_invalid_record_count ...... [[33mSKIP[0m]
+[0m21:12:06.636318 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_invalid_record_count.787c34facb
+[0m21:12:06.636557 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_measurement_date_utc.012505b800
+[0m21:12:06.636747 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_quality_daily_invalid_record_count.787c34facb' to be skipped because of status 'skipped'. 
+[0m21:12:06.636974 [info ] [Thread-1 (]: 49 of 65 SKIP test not_null_fct_sensor_quality_daily_measurement_date_utc ...... [[33mSKIP[0m]
+[0m21:12:06.637284 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_measurement_date_utc.012505b800
+[0m21:12:06.637535 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_raw_record_count.9a059e20d2
+[0m21:12:06.637736 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_quality_daily_measurement_date_utc.012505b800' to be skipped because of status 'skipped'. 
+[0m21:12:06.637974 [info ] [Thread-1 (]: 50 of 65 SKIP test not_null_fct_sensor_quality_daily_raw_record_count .......... [[33mSKIP[0m]
+[0m21:12:06.638268 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_raw_record_count.9a059e20d2
+[0m21:12:06.638505 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_valid_unique_reading_count.aaf5e0a950
+[0m21:12:06.638700 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_quality_daily_raw_record_count.9a059e20d2' to be skipped because of status 'skipped'. 
+[0m21:12:06.638931 [info ] [Thread-1 (]: 51 of 65 SKIP test not_null_fct_sensor_quality_daily_valid_unique_reading_count  [[33mSKIP[0m]
+[0m21:12:06.639345 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_sensor_quality_daily_valid_unique_reading_count.aaf5e0a950
+[0m21:12:06.639593 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.fct_environmental_score_hourly
+[0m21:12:06.639795 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_sensor_quality_daily_valid_unique_reading_count.aaf5e0a950' to be skipped because of status 'skipped'. 
+[0m21:12:06.640026 [info ] [Thread-1 (]: 52 of 65 SKIP relation GREENHOUSE_DBT_marts.fct_environmental_score_hourly ..... [[33mSKIP[0m]
+[0m21:12:06.640307 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.fct_environmental_score_hourly
+[0m21:12:06.640502 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.fct_environmental_score_hourly' to be skipped because of status 'skipped'. 
+[0m21:12:06.640940 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.accepted_values_fct_environmental_score_hourly_status__complete__incomplete.f91d9a8114
+[0m21:12:06.641174 [info ] [Thread-1 (]: 53 of 65 SKIP test accepted_values_fct_environmental_score_hourly_status__complete__incomplete  [[33mSKIP[0m]
+[0m21:12:06.641410 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.accepted_values_fct_environmental_score_hourly_status__complete__incomplete.f91d9a8114
+[0m21:12:06.641627 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.environmental_score_hourly_bounds
+[0m21:12:06.641852 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.accepted_values_fct_environmental_score_hourly_status__complete__incomplete.f91d9a8114' to be skipped because of status 'skipped'. 
+[0m21:12:06.642072 [info ] [Thread-1 (]: 54 of 65 SKIP test environmental_score_hourly_bounds ........................... [[33mSKIP[0m]
+[0m21:12:06.642352 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.environmental_score_hourly_bounds
+[0m21:12:06.642564 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.environmental_score_hourly_completeness
+[0m21:12:06.642743 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.environmental_score_hourly_bounds' to be skipped because of status 'skipped'. 
+[0m21:12:06.642953 [info ] [Thread-1 (]: 55 of 65 SKIP test environmental_score_hourly_completeness ..................... [[33mSKIP[0m]
+[0m21:12:06.643219 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.environmental_score_hourly_completeness
+[0m21:12:06.643436 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_gateway_id.a4702774b2
+[0m21:12:06.643834 [info ] [Thread-1 (]: 56 of 65 SKIP test not_null_fct_environmental_score_hourly_gateway_id .......... [[33mSKIP[0m]
+[0m21:12:06.644074 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_gateway_id.a4702774b2
+[0m21:12:06.644292 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_measurement_hour_utc.0a7493d968
+[0m21:12:06.644565 [info ] [Thread-1 (]: 57 of 65 SKIP test not_null_fct_environmental_score_hourly_measurement_hour_utc  [[33mSKIP[0m]
+[0m21:12:06.644850 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_measurement_hour_utc.0a7493d968
+[0m21:12:06.643614 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.environmental_score_hourly_completeness' to be skipped because of status 'skipped'. 
+[0m21:12:06.645362 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_hourly_gateway_id.a4702774b2' to be skipped because of status 'skipped'. 
+[0m21:12:06.645561 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_hourly_measurement_hour_utc.0a7493d968' to be skipped because of status 'skipped'. 
+[0m21:12:06.645135 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_score_version.ba499a2cd2
+[0m21:12:06.645844 [info ] [Thread-1 (]: 58 of 65 SKIP test not_null_fct_environmental_score_hourly_score_version ....... [[33mSKIP[0m]
+[0m21:12:06.646090 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_score_version.ba499a2cd2
+[0m21:12:06.646313 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_status.c076ebd28e
+[0m21:12:06.646752 [info ] [Thread-1 (]: 59 of 65 SKIP test not_null_fct_environmental_score_hourly_status .............. [[33mSKIP[0m]
+[0m21:12:06.646983 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_hourly_status.c076ebd28e
+[0m21:12:06.646525 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_hourly_score_version.ba499a2cd2' to be skipped because of status 'skipped'. 
+[0m21:12:06.647206 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_hourly_status.c076ebd28e' to be skipped because of status 'skipped'. 
+[0m21:12:06.647564 [debug] [Thread-1 (]: Began running node model.greenhouse_analytics.fct_environmental_score_daily
+[0m21:12:06.647812 [info ] [Thread-1 (]: 60 of 65 SKIP relation GREENHOUSE_DBT_marts.fct_environmental_score_daily ...... [[33mSKIP[0m]
+[0m21:12:06.648047 [debug] [Thread-1 (]: Finished running node model.greenhouse_analytics.fct_environmental_score_daily
+[0m21:12:06.648239 [debug] [Thread-4 (]: Marking all children of 'model.greenhouse_analytics.fct_environmental_score_daily' to be skipped because of status 'skipped'. 
+[0m21:12:06.648590 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_gateway_id.48b1c75cc6
+[0m21:12:06.648831 [info ] [Thread-1 (]: 61 of 65 SKIP test not_null_fct_environmental_score_daily_gateway_id ........... [[33mSKIP[0m]
+[0m21:12:06.649067 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_gateway_id.48b1c75cc6
+[0m21:12:06.649281 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_hours_with_data.8d5679451d
+[0m21:12:06.649456 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_daily_gateway_id.48b1c75cc6' to be skipped because of status 'skipped'. 
+[0m21:12:06.649683 [info ] [Thread-1 (]: 62 of 65 SKIP test not_null_fct_environmental_score_daily_hours_with_data ...... [[33mSKIP[0m]
+[0m21:12:06.649958 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_hours_with_data.8d5679451d
+[0m21:12:06.650179 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_measurement_date_utc.d525075fe3
+[0m21:12:06.650357 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_daily_hours_with_data.8d5679451d' to be skipped because of status 'skipped'. 
+[0m21:12:06.650702 [info ] [Thread-1 (]: 63 of 65 SKIP test not_null_fct_environmental_score_daily_measurement_date_utc . [[33mSKIP[0m]
+[0m21:12:06.651069 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_measurement_date_utc.d525075fe3
+[0m21:12:06.651286 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_score_version.0849043245
+[0m21:12:06.651855 [info ] [Thread-1 (]: 64 of 65 SKIP test not_null_fct_environmental_score_daily_score_version ........ [[33mSKIP[0m]
+[0m21:12:06.652348 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_score_version.0849043245
+[0m21:12:06.652573 [debug] [Thread-1 (]: Began running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_scored_hours.20fbed46c8
+[0m21:12:06.652135 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_daily_measurement_date_utc.d525075fe3' to be skipped because of status 'skipped'. 
+[0m21:12:06.653036 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_daily_score_version.0849043245' to be skipped because of status 'skipped'. 
+[0m21:12:06.652815 [info ] [Thread-1 (]: 65 of 65 SKIP test not_null_fct_environmental_score_daily_scored_hours ......... [[33mSKIP[0m]
+[0m21:12:06.653281 [debug] [Thread-1 (]: Finished running node test.greenhouse_analytics.not_null_fct_environmental_score_daily_scored_hours.20fbed46c8
+[0m21:12:06.653462 [debug] [Thread-4 (]: Marking all children of 'test.greenhouse_analytics.not_null_fct_environmental_score_daily_scored_hours.20fbed46c8' to be skipped because of status 'skipped'. 
+[0m21:12:06.654139 [debug] [MainThread]: Connection 'master' was properly closed.
+[0m21:12:06.654313 [debug] [MainThread]: Connection 'test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b' was left open.
+[0m21:12:06.654487 [debug] [MainThread]: On test.greenhouse_analytics.not_null_environmental_score_rules_weight.1392a5494b: Close
+[0m21:12:06.829877 [info ] [MainThread]: 
+[0m21:12:06.830820 [info ] [MainThread]: Finished running 1 seed, 5 table models, 56 data tests, 3 view models in 0 hours 0 minutes and 13.38 seconds (13.38s).
+[0m21:12:06.835194 [debug] [MainThread]: Command end result
+[0m21:12:06.881671 [debug] [MainThread]: Wrote artifact WritableManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/manifest.json
+[0m21:12:06.884471 [debug] [MainThread]: Wrote artifact SemanticManifest to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/semantic_manifest.json
+[0m21:12:06.886308 [debug] [MainThread]: Wrote artifact OsiDocument to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/osi_document.json
+[0m21:12:06.891882 [debug] [MainThread]: Wrote artifact RunExecutionResult to /Users/gregoryjoshua/Projects/greenhouse-iot-streaming-pipeline/warehouse/target/run_results.json
+[0m21:12:06.892120 [info ] [MainThread]: 
+[0m21:12:06.892345 [info ] [MainThread]: [31mCompleted with 2 errors, 0 partial successes, and 0 warnings:[0m
+[0m21:12:06.892536 [info ] [MainThread]: 
+[0m21:12:06.892766 [error] [MainThread]: [[31mERROR[0m]: in model int_sensor_event_audit (models/intermediate/int_sensor_event_audit.sql)
+[0m21:12:06.893075 [error] [MainThread]:   Database Error in model int_sensor_event_audit (models/intermediate/int_sensor_event_audit.sql)
+  003001 (42501): SQL access control error:
+  Insufficient privileges to operate on view 'INT_SENSOR_EVENT_AUDIT'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_INTERMEDIATE.INT_SENSOR_EVENT_AUDIT. (request_id=ab6b683e-7af4-4595-8e76-de7c664c8305, sfqid=01c86bb7-0209-d9e2-0012-a47e00138012)
+  compiled code at target/run/greenhouse_analytics/models/intermediate/int_sensor_event_audit.sql
+[0m21:12:06.893263 [info ] [MainThread]: 
+[0m21:12:06.893458 [info ] [MainThread]:   compiled code at target/compiled/greenhouse_analytics/models/intermediate/int_sensor_event_audit.sql
+[0m21:12:06.893620 [info ] [MainThread]: 
+[0m21:12:06.893810 [error] [MainThread]: [[31mERROR[0m]: in model stg_sensor_events (models/staging/stg_sensor_events.sql)
+[0m21:12:06.894007 [error] [MainThread]:   Database Error in model stg_sensor_events (models/staging/stg_sensor_events.sql)
+  003001 (42501): SQL access control error:
+  Insufficient privileges to operate on view 'STG_SENSOR_EVENTS'. Your primary role ACCOUNTADMIN or one of your secondary roles must have OWNERSHIP granted on TABLE GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_STAGING.STG_SENSOR_EVENTS. (request_id=f7a62254-2280-49da-ac14-7e4f28faffc2, sfqid=01c86bb7-0209-d9e4-0012-a47e00133a4e)
+  compiled code at target/run/greenhouse_analytics/models/staging/stg_sensor_events.sql
+[0m21:12:06.894166 [info ] [MainThread]: 
+[0m21:12:06.894340 [info ] [MainThread]:   compiled code at target/compiled/greenhouse_analytics/models/staging/stg_sensor_events.sql
+[0m21:12:06.894504 [info ] [MainThread]: 
+[0m21:12:06.894691 [info ] [MainThread]: Done. PASS=7 WARN=0 ERROR=2 SKIP=56 NO-OP=0 REUSED=0 TOTAL=65
+[0m21:12:06.898095 [debug] [MainThread]: Resource report: {"command_name": "build", "command_success": false, "command_wall_clock_time": 14.087724, "process_in_blocks": "0", "process_kernel_time": 0.312192, "process_mem_max_rss": "180928512", "process_out_blocks": "0", "process_user_time": 1.785706}
+[0m21:12:06.898682 [debug] [MainThread]: Command `dbt build` failed at 21:12:06.898622 after 14.09 seconds
+[0m21:12:06.899020 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ef77e30>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ee58e60>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10e5663d0>]}
+[0m21:12:06.899245 [debug] [MainThread]: Flushing usage events
+[0m21:12:07.205401 [debug] [MainThread]: An error was encountered while trying to flush usage events

@@ -178,7 +178,12 @@ jobs:
                 private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
                 private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE') }}"
           EOF
+      - name: Generate environmental scoring seed
+        run: |
+          python scripts/generate_score_seed.py
 
+          # working-directory is warehouse/; compare the generated seed in-place
+          git diff --exit-code -- seeds/environmental_score_rules.csv
       - name: Verify Snowflake connection
         run: dbt debug
 

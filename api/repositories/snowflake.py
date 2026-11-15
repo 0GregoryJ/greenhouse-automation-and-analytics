@@ -1,6 +1,8 @@
 
 import os
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, time
+from contextlib import closing
+
 
 import snowflake.connector
 
@@ -24,6 +26,24 @@ PERIOD_CONFIG = {
     "30d": {
         "table": "FCT_SENSOR_DAILY",
         "time_column": "MEASUREMENT_DATE_UTC",
+        "hours": 720,
+        "resolution": "day",
+    },
+}
+
+SCORE_PERIODS = {
+    "24h": {
+        "table": "FCT_ENVIRONMENTAL_SCORE_HOURLY",
+        "hours": 24,
+        "resolution": "hour",
+    },
+    "7d": {
+        "table": "FCT_ENVIRONMENTAL_SCORE_HOURLY",
+        "hours": 168,
+        "resolution": "hour",
+    },
+    "30d": {
+        "table": "FCT_ENVIRONMENTAL_SCORE_DAILY",
         "hours": 720,
         "resolution": "day",
     },
@@ -100,3 +120,131 @@ def get_sensor_history(sensor_id, measurement_type, period):
         })
 
     return points, config["resolution"]
+
+# Historical Environmental Conditions Score
+def to_utc_iso(value):
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        else:
+            value = value.astimezone(timezone.utc)
+    elif isinstance(value, date):
+        value = datetime.combine(
+            value, time.min, tzinfo=timezone.utc
+        )
+    else:
+        raise TypeError(f"Unexpected timestamp: {type(value)}")
+
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def optional_float(value):
+    return float(value) if value is not None else None
+
+
+def get_environmental_score_history(
+    gateway_id: str,
+    period: str,
+):
+    if period not in SCORE_PERIODS:
+        raise ValueError("Unsupported period")
+
+    config = SCORE_PERIODS[period]
+    table = config["table"]
+
+    if config["resolution"] == "hour":
+        query = f"""
+            SELECT
+                MEASUREMENT_HOUR_UTC,
+                ENVIRONMENTAL_SCORE,
+                TEMPERATURE_SCORE,
+                HUMIDITY_SCORE,
+                SOIL_SCORE,
+                STATUS,
+                SCORE_VERSION
+            FROM GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_MARTS.{table}
+            WHERE GATEWAY_ID = %s
+              AND MEASUREMENT_HOUR_UTC >=
+                  DATEADD('HOUR', -{config["hours"]},
+                          CURRENT_TIMESTAMP())
+            ORDER BY MEASUREMENT_HOUR_UTC
+        """
+    else:
+        query = f"""
+            SELECT
+                MEASUREMENT_DATE_UTC,
+                AVG_ENVIRONMENTAL_SCORE,
+                MIN_ENVIRONMENTAL_SCORE,
+                MAX_ENVIRONMENTAL_SCORE,
+                SCORED_HOURS,
+                HOURS_WITH_DATA,
+                SCORE_VERSION
+            FROM GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_MARTS.{table}
+            WHERE GATEWAY_ID = %s
+              AND MEASUREMENT_DATE_UTC >=
+                  DATEADD('DAY', -30, CURRENT_DATE())
+            ORDER BY MEASUREMENT_DATE_UTC
+        """
+
+    with closing(get_connection()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, (gateway_id,))
+            rows = cursor.fetchall()
+
+    points = []
+    versions = set()
+
+    for row in rows:
+        if config["resolution"] == "hour":
+            (
+                timestamp,
+                score,
+                temp_score,
+                humidity_score,
+                soil_score,
+                status,
+                version,
+            ) = row
+
+            points.append({
+                "timestamp": to_utc_iso(timestamp),
+                "score": optional_float(score),
+                "temperature_score": optional_float(temp_score),
+                "humidity_score": optional_float(humidity_score),
+                "soil_score": optional_float(soil_score),
+                "status": status,
+            })
+
+        else:
+            (
+                timestamp,
+                avg_score,
+                min_score,
+                max_score,
+                scored_hours,
+                hours_with_data,
+                version,
+            ) = row
+
+            points.append({
+                "timestamp": to_utc_iso(timestamp),
+                "score": optional_float(avg_score),
+                "min_score": optional_float(min_score),
+                "max_score": optional_float(max_score),
+                "scored_hours": int(scored_hours),
+                "hours_with_data": int(hours_with_data),
+            })
+
+        versions.add(version)
+
+    return {
+        "gateway_id": gateway_id,
+        "period": period,
+        "resolution": config["resolution"],
+        "score_version": (
+            next(iter(versions)) if len(versions) == 1
+            else None
+        ),
+        "count": len(points),
+        "points": points,
+    }

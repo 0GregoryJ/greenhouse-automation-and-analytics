@@ -1,6 +1,10 @@
+import { useMemo, useState } from "react";
 import { formatAge } from "../../lib/format.js";
 import { metricInfo } from "../../lib/metrics.js";
+import { gatewaysFromReadings } from "../../lib/scoreStats.js";
+import { useEnvironmentalScore } from "../../hooks/useEnvironmentalScore.js";
 import { ReadingCard, SkeletonCards } from "./ReadingCard.jsx";
+import { ScoreCard } from "./ScoreCard.jsx";
 
 function getStatus({ loaded, error, readings, now }) {
   if (error && readings.length === 0) return { key: "offline", label: "Offline" };
@@ -26,6 +30,22 @@ export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, n
       String(a.sensor_id).localeCompare(String(b.sensor_id))
   );
   const status = getStatus({ loaded, error, readings, now });
+
+  const gateways = useMemo(() => gatewaysFromReadings(readings), [readings]);
+  const [gatewayId, setGatewayId] = useState("");
+  const resolvedGatewayId =
+    gatewayId && gateways.includes(gatewayId)
+      ? gatewayId
+      : (gateways[0] ?? "");
+
+  const {
+    score,
+    status: scoreStatus,
+    error: scoreError,
+  } = useEnvironmentalScore({
+    gatewayId: resolvedGatewayId,
+    enabled: Boolean(resolvedGatewayId),
+  });
 
   return (
     <section className="view" aria-label="Live sensor readings">
@@ -55,6 +75,18 @@ export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, n
             ? "Can't reach the API. Showing the last known readings."
             : "Can't reach the API."}
         </p>
+      )}
+
+      {resolvedGatewayId && (
+        <ScoreCard
+          scorePayload={score}
+          status={scoreStatus}
+          error={scoreError}
+          gatewayId={resolvedGatewayId}
+          gateways={gateways}
+          onGatewayChange={setGatewayId}
+          now={now}
+        />
       )}
 
       <div className="grid">

@@ -1,11 +1,16 @@
 import { useMemo, useState } from "react";
 import { discoveryFromLiveReadings } from "../../lib/historyStats.js";
 import { sortMeasurementTypes } from "../../lib/metrics.js";
+import { gatewaysFromReadings } from "../../lib/scoreStats.js";
 import { useHistoricalSeries } from "../../hooks/useHistoricalSeries.js";
+import { useScoreHistory } from "../../hooks/useScoreHistory.js";
 import { HistoryChart } from "./HistoryChart.jsx";
 import { HistoryControls } from "./HistoryControls.jsx";
 import { HistoryInsights } from "./HistoryInsights.jsx";
 import { HistorySummary } from "./HistorySummary.jsx";
+import { ScoreHistoryChart } from "./ScoreHistoryChart.jsx";
+import { ScoreHistorySummary } from "./ScoreHistorySummary.jsx";
+import { PERIOD_LABELS } from "../../lib/format.js";
 
 /**
  * Sensor / measurement discovery uses the live latest endpoint.
@@ -17,9 +22,12 @@ export function HistoryView({ readings, now }) {
     () => discoveryFromLiveReadings(readings, sortMeasurementTypes),
     [readings]
   );
+  const gateways = useMemo(() => gatewaysFromReadings(readings), [readings]);
 
+  const [mode, setMode] = useState("score");
   const [sensorId, setSensorId] = useState("");
   const [measurementType, setMeasurementType] = useState("");
+  const [gatewayId, setGatewayId] = useState("");
   const [period, setPeriod] = useState("7d");
 
   const resolvedSensorId =
@@ -35,19 +43,24 @@ export function HistoryView({ readings, now }) {
       ? measurementType
       : (measurements[0] ?? "");
 
-  const {
-    series,
-    resolution,
-    summary,
-    insights,
-    chartData,
-    status,
-    error,
-  } = useHistoricalSeries({
+  const resolvedGatewayId =
+    gatewayId && gateways.includes(gatewayId)
+      ? gatewayId
+      : (gateways[0] ?? "");
+
+  const sensorSeries = useHistoricalSeries({
     sensorId: resolvedSensorId,
     measurementType: resolvedMeasurementType,
     period,
-    enabled: Boolean(resolvedSensorId && resolvedMeasurementType),
+    enabled:
+      mode === "sensor" &&
+      Boolean(resolvedSensorId && resolvedMeasurementType),
+  });
+
+  const scoreSeries = useScoreHistory({
+    gatewayId: resolvedGatewayId,
+    period,
+    enabled: mode === "score" && Boolean(resolvedGatewayId),
   });
 
   const liveReading = useMemo(
@@ -60,7 +73,11 @@ export function HistoryView({ readings, now }) {
     [readings, resolvedSensorId, resolvedMeasurementType]
   );
 
-  const unit = series?.unit ?? summary.unit ?? liveReading?.unit ?? null;
+  const unit =
+    sensorSeries.series?.unit ??
+    sensorSeries.summary.unit ??
+    liveReading?.unit ??
+    null;
 
   return (
     <section className="view history-view" aria-label="Historical analytics">
@@ -68,8 +85,8 @@ export function HistoryView({ readings, now }) {
         <div>
           <h2 className="view-title">Historical analytics</h2>
           <p className="view-copy">
-            Aggregated warehouse trends for greenhouse conditions — hourly for
-            24h/7d, daily for 30d.
+            Warehouse trends — environmental conditions score or individual
+            sensor series. Hourly for 24h/7d, daily for 30d.
           </p>
         </div>
         <span className="pill pill-idle">
@@ -78,61 +95,177 @@ export function HistoryView({ readings, now }) {
         </span>
       </div>
 
-      <HistoryControls
-        sensors={discovery.sensors}
-        measurements={measurements}
-        sensorId={resolvedSensorId}
-        measurementType={resolvedMeasurementType}
-        period={period}
-        onSensorChange={(next) => {
-          setSensorId(next);
-          setMeasurementType("");
-        }}
-        onMeasurementChange={setMeasurementType}
-        onPeriodChange={setPeriod}
-        disabled={discovery.sensors.length === 0}
-      />
+      <div className="history-mode" role="tablist" aria-label="History metric">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "score"}
+          className={mode === "score" ? "tab is-active" : "tab"}
+          onClick={() => setMode("score")}
+        >
+          Conditions score
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "sensor"}
+          className={mode === "sensor" ? "tab is-active" : "tab"}
+          onClick={() => setMode("sensor")}
+        >
+          Sensor reading
+        </button>
+      </div>
 
-      {discovery.sensors.length === 0 && (
-        <p className="notice notice-info" role="status">
-          No live sensors are available to select from. History discovery uses
-          the live endpoint, so warehouse-only sensors cannot be listed yet.
-        </p>
-      )}
+      {mode === "score" ? (
+        <>
+          <div className="history-controls history-controls-score">
+            <label className="control">
+              <span className="control-label">Gateway</span>
+              <select
+                value={resolvedGatewayId}
+                onChange={(event) => setGatewayId(event.target.value)}
+                disabled={gateways.length === 0}
+              >
+                {gateways.length === 0 && (
+                  <option value="">No gateways found</option>
+                )}
+                {gateways.map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-      {error && (
-        <p className="notice" role="alert">
-          {error}
-        </p>
-      )}
+            <div className="control control-period">
+              <span className="control-label" id="score-period-label">
+                Period
+              </span>
+              <div
+                className="segmented"
+                role="radiogroup"
+                aria-labelledby="score-period-label"
+              >
+                {["24h", "7d", "30d"].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={period === value}
+                    className={
+                      period === value ? "segment is-active" : "segment"
+                    }
+                    onClick={() => setPeriod(value)}
+                    disabled={gateways.length === 0}
+                  >
+                    {PERIOD_LABELS[value] ?? value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
-      {status === "ok" && summary.totalReadings > 0 && (
-        <HistorySummary
-          summary={summary}
-          period={period}
-          resolution={resolution}
-          unit={unit}
-          liveReading={liveReading}
-          now={now}
-        />
-      )}
+          {gateways.length === 0 && (
+            <p className="notice notice-info" role="status">
+              No live gateways available. Score history discovery uses the live
+              endpoint.
+            </p>
+          )}
 
-      <HistoryChart
-        data={chartData}
-        resolution={resolution}
-        unit={unit}
-        measurementType={resolvedMeasurementType}
-        status={
-          discovery.sensors.length === 0
-            ? "error"
-            : status === "idle"
-              ? "loading"
-              : status
-        }
-      />
+          {scoreSeries.error && (
+            <p className="notice" role="alert">
+              {scoreSeries.error}
+            </p>
+          )}
 
-      {status === "ok" && summary.totalReadings > 0 && (
-        <HistoryInsights insights={insights} resolution={resolution} />
+          {scoreSeries.status === "ok" && scoreSeries.summary.validCount > 0 && (
+            <ScoreHistorySummary
+              summary={scoreSeries.summary}
+              period={period}
+              resolution={scoreSeries.resolution}
+              scoreVersion={scoreSeries.series?.score_version}
+              now={now}
+            />
+          )}
+
+          <ScoreHistoryChart
+            data={scoreSeries.chartData}
+            resolution={scoreSeries.resolution}
+            scoreVersion={scoreSeries.series?.score_version}
+            status={
+              gateways.length === 0
+                ? "error"
+                : scoreSeries.status === "idle"
+                  ? "loading"
+                  : scoreSeries.status
+            }
+          />
+        </>
+      ) : (
+        <>
+          <HistoryControls
+            sensors={discovery.sensors}
+            measurements={measurements}
+            sensorId={resolvedSensorId}
+            measurementType={resolvedMeasurementType}
+            period={period}
+            onSensorChange={(next) => {
+              setSensorId(next);
+              setMeasurementType("");
+            }}
+            onMeasurementChange={setMeasurementType}
+            onPeriodChange={setPeriod}
+            disabled={discovery.sensors.length === 0}
+          />
+
+          {discovery.sensors.length === 0 && (
+            <p className="notice notice-info" role="status">
+              No live sensors are available to select from. History discovery
+              uses the live endpoint, so warehouse-only sensors cannot be listed
+              yet.
+            </p>
+          )}
+
+          {sensorSeries.error && (
+            <p className="notice" role="alert">
+              {sensorSeries.error}
+            </p>
+          )}
+
+          {sensorSeries.status === "ok" &&
+            sensorSeries.summary.totalReadings > 0 && (
+              <HistorySummary
+                summary={sensorSeries.summary}
+                period={period}
+                resolution={sensorSeries.resolution}
+                unit={unit}
+                liveReading={liveReading}
+                now={now}
+              />
+            )}
+
+          <HistoryChart
+            data={sensorSeries.chartData}
+            resolution={sensorSeries.resolution}
+            unit={unit}
+            measurementType={resolvedMeasurementType}
+            status={
+              discovery.sensors.length === 0
+                ? "error"
+                : sensorSeries.status === "idle"
+                  ? "loading"
+                  : sensorSeries.status
+            }
+          />
+
+          {sensorSeries.status === "ok" &&
+            sensorSeries.summary.totalReadings > 0 && (
+              <HistoryInsights
+                insights={sensorSeries.insights}
+                resolution={sensorSeries.resolution}
+              />
+            )}
+        </>
       )}
     </section>
   );

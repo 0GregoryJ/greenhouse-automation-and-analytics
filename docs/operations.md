@@ -32,6 +32,8 @@ Placeholders in angle brackets, such as `<TAILSCALE_IP>`, are values from your e
 | Redis | `redis-cli --scan` | One key per sensor/measurement |
 | API (live) | `curl -s http://127.0.0.1:8000/health` | `{"status":"ok"}` (Redis only; does not check Snowflake) |
 | API (history) | `curl -s "http://127.0.0.1:8000/api/v1/history/series?sensor_id=bme280-001&measurement_type=air_temperature&period=7d"` | HTTP 200 with `points` (or `count: 0` if the mart has no rows yet) |
+| API (live score) | `curl -s "http://127.0.0.1:8000/api/v1/environment/score/current?gateway_id=pi-001"` | HTTP 200 with `score` or `score: null` + status |
+| API (score history) | `curl -s "http://127.0.0.1:8000/api/v1/environment/score/history?gateway_id=pi-001&period=7d"` | HTTP 200 with `points` (null scores are incomplete hours) |
 | Public API | `curl -s https://api.gregoryjoshua.com/health` | `{"status":"ok"}` |
 | Dashboard | Browser | "Live" status pill, readings under 30 s old |
 
@@ -235,7 +237,23 @@ curl -s "http://127.0.0.1:8000/api/v1/history/series?sensor_id=bme280-001&measur
   | python3 -m json.tool
 ```
 
-`period` must be one of `24h`, `7d`, or `30d`. The response includes `resolution` (`hour` or `day`), `unit`, `count`, and `points[]` with `timestamp`, `avg`, `min`, `max`, and `count`. The dashboard History tab uses this endpoint; Live keeps polling Redis independently.
+`period` must be one of `24h`, `7d`, or `30d`. The response includes `resolution` (`hour` or `day`), `unit`, `count`, and `points[]` with `timestamp`, `avg`, `min`, `max`, and `count`. The dashboard History tab uses this endpoint for sensor series; Live keeps polling Redis independently.
+
+Live environmental score (Redis + in-process rules):
+
+```bash
+curl -s "http://127.0.0.1:8000/api/v1/environment/score/current?gateway_id=pi-001" \
+  | python3 -m json.tool
+```
+
+Historical environmental score (Snowflake score marts):
+
+```bash
+curl -s "http://127.0.0.1:8000/api/v1/environment/score/history?gateway_id=pi-001&period=7d" \
+  | python3 -m json.tool
+```
+
+Full request/response shapes: [API reference](api.md). Methodology: [Environmental Conditions Score](environmental-conditions-score.md).
 
 ## Historical API and Snowflake
 
@@ -262,8 +280,11 @@ sudo docker compose logs --tail 100 api
 | Empty `points` with 200 | Query succeeded; no rows in the selected window for that sensor/measurement |
 | Dashboard History shows an error banner | Same causes as API 503/422 above, or CORS. Live tab may still be healthy |
 | Sensor missing from History pickers | Discovery uses live Redis readings. Offline / warehouse-only sensors do not appear until a history metadata endpoint exists |
+| Live score always `incomplete` / missing soil | Confirm Redis unit is `raw_capacitance` and matches `config/environmental_score.v1.json`; rebuild API image so `config/` is present |
+| Score history empty while sensor history has rows | Score marts not built, seed unit mismatch, or gateway_id differs; run `dbt build` and check `FCT_ENVIRONMENTAL_SCORE_*` |
+| Dashboard score card unavailable, readings OK | Score endpoint 503 or incomplete; Live readings are independent |
 
-Live endpoints keep working when Snowflake is down. History is on-demand and is not part of `/health`.
+Live endpoints keep working when Snowflake is down. History and score-history are on-demand and are not part of `/health`.
 
 ## Gateway health monitoring
 

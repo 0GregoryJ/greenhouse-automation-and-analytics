@@ -1,18 +1,38 @@
 {
-    "path_count": 177,
-    "parsed_path_count": 0,
-    "static_analysis_path_count": 0,
-    "static_analysis_parsed_path_count": 0,
+    "path_count": 183,
+    "parsed_path_count": 7,
+    "static_analysis_path_count": 3,
+    "static_analysis_parsed_path_count": 3,
     "is_partial_parse_enabled": true,
     "is_static_analysis_enabled": true,
-    "read_files_elapsed": 0.022622000193223357,
-    "load_all_elapsed": 0.10289841704070568,
+    "read_files_elapsed": 0.033912959042936563,
+    "load_macros_elapsed": 0.0003239999059587717,
+    "parse_project_elapsed": 0.7453967910259962,
+    "patch_sources_elapsed": 1.3459008187055588e-05,
+    "process_manifest_elapsed": 0.0028067920356988907,
+    "load_all_elapsed": 0.8999601670075208,
     "projects": [
         {
             "project_name": "greenhouse_analytics",
-            "elapsed": 0,
-            "parsers": [],
-            "parsed_path_count": 0
+            "elapsed": 0.744702375959605,
+            "parsers": [
+                {
+                    "parser": "model",
+                    "elapsed": 0.16520945890806615,
+                    "parsed_path_count": 3
+                },
+                {
+                    "parser": "test",
+                    "elapsed": 0.2896499999333173,
+                    "parsed_path_count": 2
+                },
+                {
+                    "parser": "test",
+                    "elapsed": 0.2898114169947803,
+                    "parsed_path_count": 2
+                }
+            ],
+            "parsed_path_count": 7
         },
         {
             "project_name": "dbt_snowflake",
