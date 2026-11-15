@@ -4,19 +4,27 @@ import {
   formatChartTooltipTime,
 } from "../../lib/format.js";
 import {
-  COMPONENT_LABELS,
-  scoreCategory,
-} from "../../lib/scoreStats.js";
+  describeComponent,
+  limitingFactor,
+} from "../../lib/scoreDisplay.js";
+import { scoreCategory } from "../../lib/scoreStats.js";
 
-function componentRows(components) {
-  const order = ["air_temperature", "relative_humidity", "soil_moisture"];
-  return order
-    .filter((key) => components && key in components)
-    .map((key) => ({
-      key,
-      label: COMPONENT_LABELS[key] ?? key,
-      value: components[key],
-    }));
+const COMPONENT_ORDER = [
+  "air_temperature",
+  "relative_humidity",
+  "soil_moisture",
+];
+
+function buildComponentRows(components, readings) {
+  return COMPONENT_ORDER.filter(
+    (key) => components && key in components
+  ).map((key) =>
+    describeComponent({
+      metric: key,
+      reading: readings?.[key],
+      score: components[key],
+    })
+  );
 }
 
 export function ScoreCard({
@@ -36,8 +44,12 @@ export function ScoreCard({
   const available = score !== null && Number.isFinite(score);
   const measuredAt = scorePayload?.measured_at;
   const age = measuredAt ? formatAge(ageMs(measuredAt, now)) : null;
-  const components = componentRows(scorePayload?.components ?? {});
+  const components = buildComponentRows(
+    scorePayload?.components ?? {},
+    scorePayload?.readings ?? {}
+  );
   const gaugeWidth = available ? Math.min(100, Math.max(0, score)) : 0;
+  const limiting = limitingFactor(scorePayload?.components ?? {});
 
   return (
     <article
@@ -120,19 +132,49 @@ export function ScoreCard({
             />
           </div>
 
+          {available && limiting && (
+            <p className="score-insight">{limiting}</p>
+          )}
+
           {components.length > 0 && (
-            <ul className="score-components">
-              {components.map((row) => (
-                <li key={row.key}>
-                  <span>{row.label}</span>
-                  <strong>
-                    {row.value === null || row.value === undefined
-                      ? "—"
-                      : Math.round(Number(row.value))}
-                  </strong>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="score-components-hint">
+                Factor scores are suitability out of 100, not the sensor
+                reading.
+              </p>
+              <ul className="score-components">
+                {components.map((row) => {
+                  const width =
+                    row.suitability === null
+                      ? 0
+                      : Math.min(100, Math.max(0, row.suitability));
+
+                  return (
+                    <li key={row.metric} className={`band-${row.bandKey}`}>
+                      <div className="score-component-head">
+                        <span className="score-component-label">{row.label}</span>
+                        <span className="score-component-suitability">
+                          {row.suitabilityLabel}
+                        </span>
+                      </div>
+                      <p className="score-component-reading">
+                        <span>{row.readingLabel}</span>
+                        <span className="score-component-band">
+                          {row.bandLabel}
+                        </span>
+                      </p>
+                      <div
+                        className="score-component-meter"
+                        role="img"
+                        aria-label={`${row.label} suitability ${row.suitabilityLabel}`}
+                      >
+                        <span style={{ width: `${width}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
 
           <p className="score-footnote">

@@ -280,6 +280,20 @@
   background: transparent;
 }
 
+.score-insight {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.score-components-hint {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .score-components {
   list-style: none;
   margin: 0 0 12px;
@@ -292,7 +306,7 @@
 .score-components li {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -301,10 +315,59 @@
   color: var(--muted);
 }
 
-.score-components strong {
+.score-component-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.score-component-label {
+  font-weight: 600;
   color: var(--text);
-  font-size: 1.05rem;
+}
+
+.score-component-suitability {
+  color: var(--text);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.score-component-reading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-component-band {
+  text-transform: lowercase;
+}
+
+.score-components li.band-in_range .score-component-band {
+  color: var(--live);
+}
+
+.score-components li.band-below .score-component-band,
+.score-components li.band-above .score-component-band {
+  color: var(--stale);
+}
+
+.score-component-meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+}
+
+.score-component-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
 }
 
 .score-footnote,
