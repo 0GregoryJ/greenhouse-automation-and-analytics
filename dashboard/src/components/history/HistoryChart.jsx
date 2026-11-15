@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import {
+  chartXAxisInterval,
   formatChartTick,
   formatChartTooltipTime,
   formatValue,
@@ -79,6 +80,7 @@ function HistoryTooltip({ active, payload, resolution, unit }) {
 export function HistoryChart({
   data,
   resolution,
+  period,
   unit,
   measurementType,
   status,
@@ -86,7 +88,7 @@ export function HistoryChart({
   const label = metricInfo(measurementType).label;
   const rows = data ?? [];
   const present = rows.filter((row) => !row.missing);
-  const tickEvery = resolution === "day" ? 5 : rows.length > 48 ? 12 : 4;
+  const tickEvery = chartXAxisInterval(period, resolution);
 
   if (status === "loading") {
     return (
@@ -126,15 +128,17 @@ export function HistoryChart({
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart
             data={rows}
-            margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+            margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
           >
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="timestamp"
-              tickFormatter={(value) => formatChartTick(value, resolution)}
-              minTickGap={28}
+              tickFormatter={(value) =>
+                formatChartTick(value, resolution, period)
+              }
+              minTickGap={48}
               interval={tickEvery}
-              tick={{ fill: "var(--muted)", fontSize: 12 }}
+              tick={{ fill: "var(--muted)", fontSize: 11 }}
               axisLine={{ stroke: "var(--border)" }}
               tickLine={false}
             />

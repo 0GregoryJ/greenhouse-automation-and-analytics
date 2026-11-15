@@ -191,6 +191,7 @@ export function HistoryView({ readings, now }) {
           <ScoreHistoryChart
             data={scoreSeries.chartData}
             resolution={scoreSeries.resolution}
+            period={period}
             scoreVersion={scoreSeries.series?.score_version}
             status={
               gateways.length === 0
@@ -247,6 +248,7 @@ export function HistoryView({ readings, now }) {
           <HistoryChart
             data={sensorSeries.chartData}
             resolution={sensorSeries.resolution}
+            period={period}
             unit={unit}
             measurementType={resolvedMeasurementType}
             status={

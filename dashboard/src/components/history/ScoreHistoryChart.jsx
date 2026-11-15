@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import {
+  chartXAxisInterval,
   formatChartTick,
   formatChartTooltipTime,
 } from "../../lib/format.js";
@@ -96,12 +97,13 @@ function ScoreTooltip({ active, payload, resolution, scoreVersion }) {
 export function ScoreHistoryChart({
   data,
   resolution,
+  period,
   scoreVersion,
   status,
 }) {
   const rows = data ?? [];
   const present = rows.filter((row) => !row.missing);
-  const tickEvery = resolution === "day" ? 5 : rows.length > 48 ? 12 : 4;
+  const tickEvery = chartXAxisInterval(period, resolution);
   const showRange = resolution === "day";
 
   if (status === "loading") {
@@ -150,7 +152,7 @@ export function ScoreHistoryChart({
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart
             data={rows}
-            margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+            margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
           >
             <CartesianGrid
               stroke="var(--border)"
@@ -159,10 +161,12 @@ export function ScoreHistoryChart({
             />
             <XAxis
               dataKey="timestamp"
-              tickFormatter={(value) => formatChartTick(value, resolution)}
-              minTickGap={28}
+              tickFormatter={(value) =>
+                formatChartTick(value, resolution, period)
+              }
+              minTickGap={48}
               interval={tickEvery}
-              tick={{ fill: "var(--muted)", fontSize: 12 }}
+              tick={{ fill: "var(--muted)", fontSize: 11 }}
               axisLine={{ stroke: "var(--border)" }}
               tickLine={false}
             />

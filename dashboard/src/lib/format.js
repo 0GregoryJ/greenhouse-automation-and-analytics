@@ -76,17 +76,40 @@ function pacificZoneLabel(date) {
   return parts.find((part) => part.type === "timeZoneName")?.value ?? "PT";
 }
 
-/** Chart / tooltip labels in Pacific time (PST/PDT). */
-export function formatChartTick(iso, resolution) {
+/**
+ * How many categories to skip between X-axis labels.
+ * 7d hourly series is ~168 points — dense date+time labels overlap.
+ */
+export function chartXAxisInterval(period, resolution) {
+  if (resolution === "day") {
+    return period === "30d" ? 4 : 2;
+  }
+
+  if (period === "7d") return 23; // ~one label per day
+  if (period === "24h") return 3; // ~eight labels
+  return 5;
+}
+
+/** Chart axis labels in Pacific time (PST/PDT). */
+export function formatChartTick(iso, resolution, period) {
   const date = new Date(iso);
 
   if (!Number.isFinite(date.getTime())) return "";
 
-  if (resolution === "day") {
+  if (resolution === "day" || period === "7d") {
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       timeZone: DISPLAY_TIME_ZONE,
+    });
+  }
+
+  if (period === "24h") {
+    return date.toLocaleString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: DISPLAY_TIME_ZONE,
+      hour12: true,
     });
   }
 
