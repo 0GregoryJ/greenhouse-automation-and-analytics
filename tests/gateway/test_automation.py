@@ -87,6 +87,7 @@ def ctl(tmp_path, module):
 def reading(module, measurement_type, value, event_id=None, timestamp=None):
     return {
         "event_id": event_id or str(uuid.uuid4()),
+        "sensor_id": "soil-001",
         "measurement_type": measurement_type,
         "value": value,
         "timestamp_utc": timestamp or module.utc_now(),
