@@ -1,0 +1,58 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": [
+      "schema_version",
+      "event_id",
+      "timestamp_utc",
+      "actuator",
+      "event_type"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "integer",
+        "const": 1
+      },
+      "event_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "timestamp_utc": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "actuator": {
+        "enum": ["fan", "pump"]
+      },
+      "event_type": {
+        "enum": [
+          "command_issued",
+          "command_acknowledged",
+          "command_failed",
+          "state_changed"
+        ]
+      },
+      "command_id": {
+        "type": "string"
+      },
+      "cycle_id": {
+        "type": "string"
+      },
+      "desired_state": {
+        "type": "boolean"
+      },
+      "observed_state": {
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "temperature_c": {
+        "type": "number"
+      },
+      "soil_moisture_pct": {
+        "type": "number"
+      }
+    },
+    "additionalProperties": false
+  }

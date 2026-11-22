@@ -250,6 +250,7 @@ jobs:
 
           sudo -n systemctl restart greenhouse-ingest.service
           sudo -n systemctl restart greenhouse-kafka-producer.service
+          
 
           sudo -n systemctl is-active --quiet greenhouse-ingest.service
           sudo -n systemctl is-active --quiet greenhouse-kafka-producer.service

@@ -1,0 +1,16 @@
+[Unit]
+Description=Greenhouse Automation Controller
+After=network-online.target mosquitto.service
+Wants=network-online.target
+Requires=mosquitto.service
+
+[Service]
+Type=simple
+User=greenhousepi
+WorkingDirectory=/home/greenhousepi/greenhouse-iot-streaming-pipeline
+ExecStart=/home/greenhousepi/greenhouse-iot-streaming-pipeline/.venv/bin/python gateway/automation.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
