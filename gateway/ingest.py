@@ -62,8 +62,10 @@ def initialize_database():
                 event_json TEXT NOT NULL,
                 received_at TEXT NOT NULL,
                 kafka_published_at TEXT
-            );
+            )
+        """)
 
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS automation_events (
                 event_id TEXT PRIMARY KEY,
                 event_json TEXT NOT NULL,
@@ -76,6 +78,7 @@ def initialize_database():
                 kafka_published_at TEXT
             )
         """)
+
 
 # Subscribes to greenhouse/telemetry MQTT topic. Runs when connected to Mosquitto.
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -92,7 +95,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Subscribed to {MQTT_AUTOMATION_TOPIC}")
 
 # Validates events.
-def validate_event(event, event_kind):
+def validate_event(event, event_kind="sensor"):
     version = event.get("schema_version")
 
     schemas = (
