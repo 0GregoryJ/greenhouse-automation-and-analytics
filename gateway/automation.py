@@ -44,8 +44,7 @@ SHELLY = {
 RPC_SOURCE = "greenhouse/controller"
 RPC_RESPONSE_TOPIC = f"{RPC_SOURCE}/rpc"
 
-# Match these strings to your telemetry measurement_type.
-TEMP_TYPE = "temperature"
+TEMP_TYPE = "air_temperature"
 MOISTURE_TYPE = "soil_moisture"
 
 FAN_ON_TEMP = 10
