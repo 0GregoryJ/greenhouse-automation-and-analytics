@@ -11,7 +11,12 @@ from pathlib import Path
 
 import pytest
 
-PATH = Path(__file__).with_name("historical_consumer.py")
+PATH = (
+    Path(__file__).resolve().parents[2]
+    / "consumers"
+    / "historical"
+    / "consumer.py"
+)
 
 
 class TopicPartition:

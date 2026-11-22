@@ -41,6 +41,11 @@ def module(monkeypatch):
     monkeypatch.setenv("PUMP_AUTO_ENABLED", "true")
     monkeypatch.setenv("PUMP_COOLDOWN_SECONDS", "43200")
     monkeypatch.setenv("PUMP_MAX_CYCLES_24H", "1")
+    monkeypatch.setenv("PUMP_MOISTURE_THRESHOLD", "600")
+    monkeypatch.setenv("PUMP_MIN_VALID_RAW", "450")
+    monkeypatch.setenv("PUMP_MAX_VALID_RAW", "1200")
+    monkeypatch.setenv("PUMP_REQUIRED_LOW_READINGS", "3")
+    monkeypatch.setenv("MOISTURE_SENSOR_ID", "")
     module_path = Path(os.getenv("AUTOMATION_MODULE_PATH", ""))
     if not module_path.is_file():
         module_path = Path(__file__).resolve().parents[2] / "gateway" / "automation.py"
