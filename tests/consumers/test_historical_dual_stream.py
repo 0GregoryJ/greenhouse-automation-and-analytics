@@ -95,6 +95,9 @@ def module(monkeypatch):
     stub.KafkaException = KafkaException
     stub.TopicPartition = TopicPartition
     monkeypatch.setitem(sys.modules, "confluent_kafka", stub)
+    boto3_stub = types.ModuleType("boto3")
+    boto3_stub.client = lambda service: FakeS3()
+    monkeypatch.setitem(sys.modules, "boto3", boto3_stub)
     spec = importlib.util.spec_from_file_location("historical_consumer_under_test", PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
