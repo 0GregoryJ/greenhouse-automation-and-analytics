@@ -5,9 +5,9 @@ import {
 import { scoreCategory } from "../../lib/scoreStats.js";
 
 const COMPONENT_ORDER = [
+  "soil_moisture",
   "air_temperature",
   "relative_humidity",
-  "soil_moisture",
 ];
 
 function buildComponentRows(components, readings) {
@@ -50,8 +50,7 @@ export function ScoreCard({
     >
       <header className="score-card-head">
         <div>
-          <p className="score-eyebrow">Environmental conditions</p>
-          <h2 className="score-title">Conditions score</h2>
+          <h2 className="score-title">Environmental conditions score</h2>
         </div>
 
         {gateways.length > 1 && (
@@ -133,8 +132,10 @@ export function ScoreCard({
               {components.map((row) => (
                 <li key={row.metric} className={`band-${row.bandKey}`}>
                   <span className="score-component-label">{row.label}</span>
-                  <p className="score-component-reading">{row.readingLabel}</p>
-                  <p className="score-component-band">{row.bandLabel}</p>
+                  <div className="score-component-metrics">
+                    <p className="score-component-reading">{row.readingLabel}</p>
+                    <p className="score-component-band">{row.bandLabel}</p>
+                  </div>
                 </li>
               ))}
             </ul>

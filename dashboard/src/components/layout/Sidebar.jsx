@@ -26,7 +26,9 @@ function NavButton({ item, active, onNavigate, collapsed }) {
       onClick={() => onNavigate(item.id)}
     >
       <Icon className="side-link-icon" />
-      {!collapsed && <span>{item.label}</span>}
+      <span className={collapsed ? "side-link-label is-collapsed" : "side-link-label"}>
+        {item.label}
+      </span>
     </button>
   );
 }
@@ -42,12 +44,16 @@ export function Sidebar({ page, onNavigate, collapsed, onToggleCollapsed }) {
           <span className="sidebar-brand-mark" aria-hidden="true">
             <IconLeaf className="sidebar-brand-icon" />
           </span>
-          {!collapsed && (
-            <div>
-              <p className="sidebar-brand-title">Greenhouse</p>
-              <p className="sidebar-brand-sub">Analytics</p>
-            </div>
-          )}
+          <div
+            className={
+              collapsed
+                ? "sidebar-brand-text is-collapsed"
+                : "sidebar-brand-text"
+            }
+          >
+            <p className="sidebar-brand-title">Greenhouse</p>
+            <p className="sidebar-brand-sub">Analytics</p>
+          </div>
         </div>
 
         <button

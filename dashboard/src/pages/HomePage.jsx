@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AiAnalystPanel } from "../components/ai/AiAnalystPanel.jsx";
 import { RecentAutomations } from "../components/automation/RecentAutomations.jsx";
 import { ReadingCard, SkeletonCards } from "../components/live/ReadingCard.jsx";
@@ -56,6 +56,23 @@ export function HomePage({ readings, status: loadStatus, error, lastFetchedAt, n
     error: automationError,
   } = useAutomationEvents({ enabled: true });
 
+  const aiPanelRef = useRef(null);
+  const [automationsHeight, setAutomationsHeight] = useState(null);
+
+  useEffect(() => {
+    const node = aiPanelRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+
+    const syncHeight = () => {
+      setAutomationsHeight(Math.round(node.getBoundingClientRect().height));
+    };
+
+    syncHeight();
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="view home-view" aria-label="Home">
       <div className="view-toolbar view-toolbar-status-only">
@@ -107,12 +124,19 @@ export function HomePage({ readings, status: loadStatus, error, lastFetchedAt, n
       )}
 
       <div className="home-secondary">
-        <AiAnalystPanel />
+        <div className="home-ai-slot" ref={aiPanelRef}>
+          <AiAnalystPanel />
+        </div>
         <RecentAutomations
           events={events}
           status={automationStatus}
           error={automationError}
           now={now}
+          style={
+            automationsHeight
+              ? { height: `${automationsHeight}px` }
+              : undefined
+          }
         />
       </div>
     </section>

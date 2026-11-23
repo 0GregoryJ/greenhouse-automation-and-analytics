@@ -9,11 +9,15 @@ function ActuatorIcon({ actuator }) {
   return <IconDroplet className="auto-item-icon" />;
 }
 
-export function RecentAutomations({ events, status, error, now }) {
+export function RecentAutomations({ events, status, error, now, style }) {
   const loaded = status !== "loading" || events.length > 0;
 
   return (
-    <section className="auto-panel" aria-label="Recent automations">
+    <section
+      className="auto-panel"
+      aria-label="Recent automations"
+      style={style}
+    >
       <header className="auto-panel-head">
         <h2>Recent automations</h2>
         <p className="auto-panel-copy">Latest fan and pump events</p>
