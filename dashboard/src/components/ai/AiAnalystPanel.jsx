@@ -12,7 +12,7 @@ const DEFAULT_PROMPTS = [
  */
 export function AiAnalystPanel({
   title = "Greenhouse analyst",
-  description = "Ask questions against governed greenhouse metrics — score, sensors, and soon automations — with answers grounded in defined measures rather than ad-hoc SQL.",
+  description = "Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data.",
   prompts = DEFAULT_PROMPTS,
   variant = "full",
 }) {

@@ -4,6 +4,7 @@ import { sortMeasurementTypes } from "../../lib/metrics.js";
 import { gatewaysFromReadings } from "../../lib/scoreStats.js";
 import { useHistoricalSeries } from "../../hooks/useHistoricalSeries.js";
 import { useScoreHistory } from "../../hooks/useScoreHistory.js";
+import { ComingSoonPanel } from "../shared/ComingSoonPanel.jsx";
 import { HistoryChart } from "./HistoryChart.jsx";
 import { HistoryControls } from "./HistoryControls.jsx";
 import { HistoryInsights } from "./HistoryInsights.jsx";
@@ -127,11 +128,25 @@ export function HistoryView({ readings, now, embedded = false }) {
           className={mode === "sensor" ? "tab is-active" : "tab"}
           onClick={() => setMode("sensor")}
         >
-          Sensor reading
+          Sensor readings
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "automations"}
+          className={mode === "automations" ? "tab is-active" : "tab"}
+          onClick={() => setMode("automations")}
+        >
+          Automations
         </button>
       </div>
 
-      {mode === "score" ? (
+      {mode === "automations" ? (
+        <ComingSoonPanel
+          title="Automation analytics"
+          description="Counts, timing, and outcome charts for fan and pump events need dbt marts on automation topics. Placeholder until those models ship."
+        />
+      ) : mode === "score" ? (
         <>
           <div className="history-controls history-controls-score">
             <label className="control">

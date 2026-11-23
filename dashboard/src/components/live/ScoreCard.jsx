@@ -133,10 +133,8 @@ export function ScoreCard({
               {components.map((row) => (
                 <li key={row.metric} className={`band-${row.bandKey}`}>
                   <span className="score-component-label">{row.label}</span>
-                  <p className="score-component-reading">
-                    <span>{row.readingLabel}</span>
-                    <span className="score-component-band">{row.bandLabel}</span>
-                  </p>
+                  <p className="score-component-reading">{row.readingLabel}</p>
+                  <p className="score-component-band">{row.bandLabel}</p>
                 </li>
               ))}
             </ul>

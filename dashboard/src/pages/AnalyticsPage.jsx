@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { AiAnalystPanel } from "../components/ai/AiAnalystPanel.jsx";
-import { ComingSoonPanel } from "../components/shared/ComingSoonPanel.jsx";
 
 const HistoryView = lazy(() =>
   import("../components/history/HistoryView.jsx").then((module) => ({
@@ -31,16 +30,12 @@ export function AnalyticsPage({ readings, now }) {
         </span>
       </div>
 
-      <div className="analytics-soon-grid">
+      <div className="analytics-ai-slot">
         <AiAnalystPanel
           variant="compact"
           title="Analytics analyst"
-          description="Query historical score and sensor marts in plain language once the semantic layer is connected."
+          description="Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data."
           prompts={ANALYTICS_PROMPTS}
-        />
-        <ComingSoonPanel
-          title="Automation analytics"
-          description="Counts, timing, and outcome charts for fan and pump events need dbt marts on automation topics. Placeholder until those models ship."
         />
       </div>
 

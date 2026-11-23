@@ -7,8 +7,19 @@ import { AnalyticsPage } from "./pages/AnalyticsPage.jsx";
 import { ControlPage } from "./pages/ControlPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
 
+const SIDEBAR_KEY = "greenhouse.sidebarCollapsed";
+
+function readSidebarCollapsed() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   const [page, setPage] = useState("home");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [now, setNow] = useState(() => Date.now());
   const { readings, status, error, lastFetchedAt } = useLiveReadings({
     enabled: true,
@@ -19,9 +30,26 @@ export default function App() {
     return () => window.clearInterval(tick);
   }, []);
 
+  function toggleSidebar() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
   return (
-    <div className="app-shell">
-      <Sidebar page={page} onNavigate={setPage} />
+    <div className={sidebarCollapsed ? "app-shell is-collapsed" : "app-shell"}>
+      <Sidebar
+        page={page}
+        onNavigate={setPage}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebar}
+      />
 
       <main className="app-main">
         {page === "home" && (
