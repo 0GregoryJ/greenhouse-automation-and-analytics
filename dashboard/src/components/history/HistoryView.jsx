@@ -11,7 +11,7 @@ import { HistoryInsights } from "./HistoryInsights.jsx";
 import { HistorySummary } from "./HistorySummary.jsx";
 import { ScoreHistoryChart } from "./ScoreHistoryChart.jsx";
 import { ScoreHistorySummary } from "./ScoreHistorySummary.jsx";
-import { PERIOD_LABELS } from "../../lib/format.js";
+import { historyDisplayUnit, PERIOD_LABELS } from "../../lib/format.js";
 
 /**
  * Sensor / measurement discovery uses the live latest endpoint.
@@ -74,11 +74,12 @@ export function HistoryView({ readings, now, embedded = false }) {
     [readings, resolvedSensorId, resolvedMeasurementType]
   );
 
-  const unit =
-    sensorSeries.series?.unit ??
-    sensorSeries.summary.unit ??
-    liveReading?.unit ??
-    null;
+  const unit = historyDisplayUnit(
+    resolvedMeasurementType,
+    sensorSeries.series?.unit,
+    sensorSeries.summary.unit,
+    liveReading?.unit
+  );
 
   return (
     <section

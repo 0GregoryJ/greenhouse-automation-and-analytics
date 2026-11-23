@@ -41,6 +41,19 @@ validated AS (
       AND unit IS NOT NULL
 ),
 
+including_calibrated_moisure as (
+    select
+        *,
+        100 * AVG(
+            IFF(value >= 990, 1.0, 0.0)
+        ) OVER (
+            PARTITION BY gateway_id, sensor_id
+            ORDER BY measured_at_utc, event_id
+            ROWS BETWEEN 9 PRECEDING AND CURRENT ROW
+        ) as calibrated_moisture
+    from validated
+),
+
 final AS (
     SELECT
         *,
@@ -54,7 +67,7 @@ final AS (
             measured_at_utc
         ) AS measurement_date_utc
 
-    FROM validated
+    FROM including_calibrated_moisure
 )
 
 SELECT *

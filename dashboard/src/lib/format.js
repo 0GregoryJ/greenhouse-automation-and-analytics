@@ -32,6 +32,22 @@ export function formatValue({ value, unit }) {
 }
 
 /**
+ * Historical soil moisture is calibrated percent in the warehouse marts.
+ * Live Redis rows may still carry unit=raw_capacitance.
+ */
+export function historyDisplayUnit(measurementType, ...candidates) {
+  if (measurementType === "soil_moisture") {
+    return "percent";
+  }
+
+  for (const unit of candidates) {
+    if (unit) return unit;
+  }
+
+  return null;
+}
+
+/**
  * Live API readings use `raw_value`; soil moisture may also include
  * `calibrated_pct` + `state`. Prefer calibrated % for live soil display.
  */

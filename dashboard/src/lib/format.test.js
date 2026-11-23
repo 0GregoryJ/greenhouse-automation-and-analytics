@@ -8,6 +8,7 @@ import {
   formatLiveReading,
   formatMoistureState,
   formatValue,
+  historyDisplayUnit,
   liveDisplayValue,
 } from "./format.js";
 
@@ -107,3 +108,17 @@ describe("formatMoistureState", () => {
     });
   });
 });
+
+describe("historyDisplayUnit", () => {
+  it("forces soil moisture history to percent", () => {
+    assert.equal(
+      historyDisplayUnit("soil_moisture", "raw_capacitance"),
+      "percent"
+    );
+  });
+
+  it("keeps other measurement units", () => {
+    assert.equal(historyDisplayUnit("air_temperature", "celsius"), "celsius");
+  });
+});
+

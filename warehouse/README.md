@@ -31,7 +31,8 @@ python warehouse/scripts/generate_score_seed.py
 
 Do not edit the CSV by hand. Change the JSON, regenerate, commit both, and bump `version` when rules change meaning.
 
-The hourly score model joins mart readings to the seed on `measurement_type` **and** `unit` (soil moisture uses `raw_capacitance`).
+The hourly score model joins mart readings to the seed on `measurement_type` **and** `unit` (soil moisture uses calibrated `percent`).
+
 
 ## Scheduled builds
 
