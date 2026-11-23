@@ -10,3 +10,9 @@ sources:
         description: >
           Raw greenhouse sensor events ingested from Kafka,
           archived in S3, and loaded into Snowflake.
+      - name: automation_events
+        identifier: AUTOMATION_EVENTS
+        description: >
+          Raw greenhouse automation events ingested from Kafka,
+          archived in S3, and loaded into Snowflake. Currently includes
+          fan and pump events.

@@ -33,7 +33,7 @@ export function AnalyticsPage({ readings, now }) {
       <div className="analytics-ai-slot">
         <AiAnalystPanel
           variant="compact"
-          title="Analytics analyst"
+          title="Greenhouse analyst"
           description="Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data."
           prompts={ANALYTICS_PROMPTS}
         />

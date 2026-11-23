@@ -65,3 +65,62 @@ models:
         description: Timestamp when Snowflake ingested the event.
         data_tests:
           - not_null
+
+  - name: stg_automation_events
+    description: >
+      Typed greenhouse automation events extracted from the
+      RAW.AUTOMATION_EVENTS JSON payload. Deduplicated by
+      event_id, retaining the latest loaded record.
+    columns:
+      - name: event_id
+        description: Unique identifier assigned to an automation event.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: schema_version
+        description: Version of the original event schema.
+        data_tests:
+          - not_null
+
+      - name: measured_at
+        description: Timestamp when the automation occured.
+
+      - name: event_type
+        description: Type of automation.
+        data_tests:
+          - not_null
+
+      - name: actuator
+        description: Name of actuator, either fan or pump currently.
+
+      - name: reason
+        description: Reason for automation event.
+
+      - name: temperature_c
+        description: Temperature in Celcius if fan event.
+
+      - name: observed_state
+        description: Observed state (boolean).
+
+      - name: kafka_topic
+        description: Kafka topic containing the original event.
+
+      - name: kafka_partition
+        description: Kafka partition containing the event.
+
+      - name: kafka_offset
+        description: Offset of the original Kafka record.
+
+      - name: source_file
+        description: S3 object from which Snowflake loaded the record.
+        data_tests:
+          - not_null
+
+      - name: source_file_row
+        description: Row number within the source object.
+
+      - name: loaded_at
+        description: Timestamp when Snowflake ingested the event.
+        data_tests:
+          - not_null

@@ -9,3 +9,4 @@ node_modules/
 firmware/esp32/config.py
 logs/
 **/logs/
+warehouse/target/
