@@ -35,26 +35,27 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #09090b;
-    --surface: #18181b;
-    --border: #27272a;
-    --text: #fafafa;
-    --muted: #a1a1aa;
-    --track: #27272a;
-    --selected: #27272a;
+    /* Material-style layered greys — avoid pure black */
+    --bg: #161618;
+    --surface: #222226;
+    --border: #333338;
+    --text: #f0f0f2;
+    --muted: #a8a8b0;
+    --track: #333338;
+    --selected: #2c2c32;
 
     --accent: #4ade80;
-    --accent-bg: rgba(74, 222, 128, 0.12);
+    --accent-bg: rgba(74, 222, 128, 0.14);
     --live: var(--accent);
     --live-bg: var(--accent-bg);
     --stale: #fbbf24;
-    --stale-bg: rgba(251, 191, 36, 0.12);
+    --stale-bg: rgba(251, 191, 36, 0.14);
     --offline: #f87171;
-    --offline-bg: rgba(248, 113, 113, 0.12);
-    --idle: #a1a1aa;
-    --idle-bg: rgba(161, 161, 170, 0.12);
+    --offline-bg: rgba(248, 113, 113, 0.14);
+    --idle: #a8a8b0;
+    --idle-bg: rgba(168, 168, 176, 0.14);
 
-    --shadow: none;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
   }
 }
 

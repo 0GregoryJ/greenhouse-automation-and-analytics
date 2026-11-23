@@ -1,9 +1,4 @@
 import {
-  ageMs,
-  formatAge,
-  formatChartTooltipTime,
-} from "../../lib/format.js";
-import {
   describeComponent,
   limitingFactor,
 } from "../../lib/scoreDisplay.js";
@@ -34,7 +29,6 @@ export function ScoreCard({
   gatewayId,
   gateways,
   onGatewayChange,
-  now,
 }) {
   const score =
     scorePayload?.score === null || scorePayload?.score === undefined
@@ -42,8 +36,6 @@ export function ScoreCard({
       : Number(scorePayload.score);
   const category = scoreCategory(score);
   const available = score !== null && Number.isFinite(score);
-  const measuredAt = scorePayload?.measured_at;
-  const age = measuredAt ? formatAge(ageMs(measuredAt, now)) : null;
   const components = buildComponentRows(
     scorePayload?.components ?? {},
     scorePayload?.readings ?? {}
@@ -149,21 +141,6 @@ export function ScoreCard({
               ))}
             </ul>
           )}
-
-          <p className="score-footnote">
-            Composite score vs configured targets — not verified plant health.
-            Factor rows show the reading and target category only.
-            {measuredAt && (
-              <>
-                {" "}
-                Measured {formatChartTooltipTime(measuredAt, "hour")}
-                {age ? ` (${age})` : ""}.
-              </>
-            )}
-            {gateways.length === 1 && gatewayId && (
-              <> Gateway {gatewayId}.</>
-            )}
-          </p>
         </>
       )}
     </article>

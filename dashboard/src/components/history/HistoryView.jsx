@@ -17,7 +17,7 @@ import { PERIOD_LABELS } from "../../lib/format.js";
  * Sensors that only exist in the warehouse (no current Redis key) will not
  * appear here until a dedicated history metadata endpoint exists.
  */
-export function HistoryView({ readings, now }) {
+export function HistoryView({ readings, now, embedded = false }) {
   const discovery = useMemo(
     () => discoveryFromLiveReadings(readings, sortMeasurementTypes),
     [readings]
@@ -80,20 +80,35 @@ export function HistoryView({ readings, now }) {
     null;
 
   return (
-    <section className="view history-view" aria-label="Historical analytics">
-      <div className="view-toolbar">
-        <div>
-          <h2 className="view-title">Historical analytics</h2>
+    <section
+      className={embedded ? "history-view history-view-embedded" : "view history-view"}
+      aria-label="Environmental history"
+    >
+      {!embedded && (
+        <div className="view-toolbar">
+          <div>
+            <h2 className="view-title">Historical analytics</h2>
+            <p className="view-copy">
+              Warehouse trends — environmental conditions score or individual
+              sensor series. Hourly for 24h/7d, daily for 30d.
+            </p>
+          </div>
+          <span className="pill pill-idle">
+            <span className="pill-dot" />
+            Warehouse
+          </span>
+        </div>
+      )}
+
+      {embedded && (
+        <div className="section-block-head">
+          <h3 className="section-heading">Environmental trends</h3>
           <p className="view-copy">
-            Warehouse trends — environmental conditions score or individual
-            sensor series. Hourly for 24h/7d, daily for 30d.
+            Conditions score or individual sensor series. Hourly for 24h/7d,
+            daily for 30d.
           </p>
         </div>
-        <span className="pill pill-idle">
-          <span className="pill-dot" />
-          Warehouse
-        </span>
-      </div>
+      )}
 
       <div className="history-mode" role="tablist" aria-label="History metric">
         <button

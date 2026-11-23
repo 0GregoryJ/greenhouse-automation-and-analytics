@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
-import { formatAge } from "../../lib/format.js";
-import { metricInfo } from "../../lib/metrics.js";
-import { gatewaysFromReadings } from "../../lib/scoreStats.js";
-import { useEnvironmentalScore } from "../../hooks/useEnvironmentalScore.js";
-import { ReadingCard, SkeletonCards } from "./ReadingCard.jsx";
-import { ScoreCard } from "./ScoreCard.jsx";
+import { AiAnalystPanel } from "../components/ai/AiAnalystPanel.jsx";
+import { RecentAutomations } from "../components/automation/RecentAutomations.jsx";
+import { ReadingCard, SkeletonCards } from "../components/live/ReadingCard.jsx";
+import { ScoreCard } from "../components/live/ScoreCard.jsx";
+import { useAutomationEvents } from "../hooks/useAutomationEvents.js";
+import { useEnvironmentalScore } from "../hooks/useEnvironmentalScore.js";
+import { formatAge } from "../lib/format.js";
+import { metricInfo } from "../lib/metrics.js";
+import { gatewaysFromReadings } from "../lib/scoreStats.js";
 
 function getStatus({ loaded, error, readings, now }) {
   if (error && readings.length === 0) return { key: "offline", label: "Offline" };
@@ -21,7 +24,7 @@ function getStatus({ loaded, error, readings, now }) {
     : { key: "stale", label: "Stale" };
 }
 
-export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, now }) {
+export function HomePage({ readings, status: loadStatus, error, lastFetchedAt, now }) {
   const loaded = loadStatus !== "loading" || readings.length > 0;
   const sorted = [...readings].sort(
     (a, b) =>
@@ -29,7 +32,7 @@ export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, n
         metricInfo(b.measurement_type).order ||
       String(a.sensor_id).localeCompare(String(b.sensor_id))
   );
-  const status = getStatus({ loaded, error, readings, now });
+  const liveStatus = getStatus({ loaded, error, readings, now });
 
   const gateways = useMemo(() => gatewaysFromReadings(readings), [readings]);
   const [gatewayId, setGatewayId] = useState("");
@@ -47,23 +50,23 @@ export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, n
     enabled: Boolean(resolvedGatewayId),
   });
 
+  const {
+    events,
+    status: automationStatus,
+    error: automationError,
+  } = useAutomationEvents({ enabled: true });
+
   return (
-    <section className="view" aria-label="Live sensor readings">
-      <div className="view-toolbar">
-        <div>
-          <h2 className="view-title">Live monitoring</h2>
-          <p className="view-copy">
-            Current greenhouse readings from Redis, refreshed every few seconds.
-          </p>
-        </div>
-        <div className="top-status">
-          <span className={`pill pill-${status.key}`}>
+    <section className="view home-view" aria-label="Home">
+      <div className="view-toolbar view-toolbar-status-only">
+        <div className="top-status top-status-inline">
+          <span className={`pill pill-${liveStatus.key}`}>
             <span className="pill-dot" />
-            {status.label}
+            {liveStatus.label}
           </span>
           {lastFetchedAt && (
             <span className="updated">
-              Updated {formatAge(now - lastFetchedAt)}
+              Last update {formatAge(now - lastFetchedAt)}
             </span>
           )}
         </div>
@@ -85,13 +88,11 @@ export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, n
           gatewayId={resolvedGatewayId}
           gateways={gateways}
           onGatewayChange={setGatewayId}
-          now={now}
         />
       )}
 
       <div className="grid">
         {!loaded && !error && <SkeletonCards />}
-
         {sorted.map((reading) => (
           <ReadingCard
             key={`${reading.gateway_id}-${reading.sensor_id}-${reading.measurement_type}`}
@@ -105,7 +106,15 @@ export function LiveView({ readings, status: loadStatus, error, lastFetchedAt, n
         <p className="empty">No readings available yet.</p>
       )}
 
-      <p className="page-foot">Live view refreshes every 3 seconds</p>
+      <div className="home-secondary">
+        <AiAnalystPanel />
+        <RecentAutomations
+          events={events}
+          status={automationStatus}
+          error={automationError}
+          now={now}
+        />
+      </div>
     </section>
   );
 }

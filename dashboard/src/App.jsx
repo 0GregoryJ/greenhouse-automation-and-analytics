@@ -1,21 +1,14 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-import { LiveView } from "./components/live/LiveView.jsx";
+import { Sidebar } from "./components/layout/Sidebar.jsx";
 import { useLiveReadings } from "./hooks/useLiveReadings.js";
+import { AboutPage } from "./pages/AboutPage.jsx";
+import { AnalyticsPage } from "./pages/AnalyticsPage.jsx";
+import { ControlPage } from "./pages/ControlPage.jsx";
+import { HomePage } from "./pages/HomePage.jsx";
 
-const HistoryView = lazy(() =>
-  import("./components/history/HistoryView.jsx").then((module) => ({
-    default: module.HistoryView,
-  }))
-);
-
-const TABS = [
-  { id: "live", label: "Live" },
-  { id: "history", label: "History" },
-];
-
-function App() {
-  const [tab, setTab] = useState("live");
+export default function App() {
+  const [page, setPage] = useState("home");
   const [now, setNow] = useState(() => Date.now());
   const { readings, status, error, lastFetchedAt } = useLiveReadings({
     enabled: true,
@@ -27,54 +20,25 @@ function App() {
   }, []);
 
   return (
-    <div className="page">
-      <header className="top">
-        <div>
-          <h1>Greenhouse</h1>
-          <p className="subtitle">
-            {tab === "live"
-              ? "Live sensor readings"
-              : "Historical environmental trends"}
-          </p>
-        </div>
+    <div className="app-shell">
+      <Sidebar page={page} onNavigate={setPage} />
 
-        <nav className="tabs" aria-label="Dashboard views">
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={tab === item.id ? "tab is-active" : "tab"}
-              aria-pressed={tab === item.id}
-              onClick={() => setTab(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      {tab === "live" ? (
-        <LiveView
-          readings={readings}
-          status={status}
-          error={error}
-          lastFetchedAt={lastFetchedAt}
-          now={now}
-        />
-      ) : (
-        <Suspense
-          fallback={
-            <div className="chart-shell chart-shell-loading" aria-busy="true">
-              <div className="chart-skeleton" />
-              <p>Loading historical analytics…</p>
-            </div>
-          }
-        >
-          <HistoryView readings={readings} now={now} />
-        </Suspense>
-      )}
+      <main className="app-main">
+        {page === "home" && (
+          <HomePage
+            readings={readings}
+            status={status}
+            error={error}
+            lastFetchedAt={lastFetchedAt}
+            now={now}
+          />
+        )}
+        {page === "control" && <ControlPage />}
+        {page === "analytics" && (
+          <AnalyticsPage readings={readings} now={now} />
+        )}
+        {page === "about" && <AboutPage />}
+      </main>
     </div>
   );
 }
-
-export default App;
