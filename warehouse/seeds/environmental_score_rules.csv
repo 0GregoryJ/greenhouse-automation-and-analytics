@@ -1,4 +1,4 @@
 score_version,measurement_type,unit,weight,target_min,target_max,tolerance_below,tolerance_above,valid_min,valid_max
-conditions-v1,air_temperature,celsius,0.4,20,26,8,8,-10,60
-conditions-v1,relative_humidity,percent,0.25,50,70,25,25,0,100
-conditions-v1,soil_moisture,raw_capacitance,0.35,450,800,250,300,150,2000
+conditions-v2,air_temperature,celsius,0.4,20,26,8,8,-10,60
+conditions-v2,relative_humidity,percent,0.2,85,97,35,3,0,100
+conditions-v2,soil_moisture,percent,0.4,40,80,40,20,0,100

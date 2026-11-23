@@ -1,40 +1,39 @@
 {
-    "version": "conditions-v1",
-    "description": "Generalized greenhouse environmental suitability",
-    "max_reading_age_seconds": 180,
-    "max_sensor_skew_seconds": 120,
-    "metrics": {
-      "air_temperature": {
-        "unit": "celsius",
-        "weight": 0.4,
-        "target_min": 20,
-        "target_max": 26,
-        "tolerance_below": 8,
-        "tolerance_above": 8,
-        "valid_min": -10,
-        "valid_max": 60
-      },
-      "relative_humidity": {
-        "unit": "percent",
-        "weight": 0.25,
-        "target_min": 50,
-        "target_max": 70,
-        "tolerance_below": 25,
-        "tolerance_above": 25,
-        "valid_min": 0,
-        "valid_max": 100
-      },
-      "soil_moisture": {
-        "unit": "raw_capacitance",
-        "weight": 0.35,
-        "target_min": 450,
-        "target_max": 800,
-        "tolerance_below": 250,
-        "tolerance_above": 300,
-        "valid_min": 150,
-        "valid_max": 2000,
-        "calibration_status": "provisional"
-      }
+  "version": "conditions-v2",
+  "description": "Greenhouse environmental suitability with calibrated soil moisture percent",
+  "max_reading_age_seconds": 180,
+  "max_sensor_skew_seconds": 120,
+  "metrics": {
+    "air_temperature": {
+      "unit": "celsius",
+      "weight": 0.4,
+      "target_min": 20,
+      "target_max": 26,
+      "tolerance_below": 8,
+      "tolerance_above": 8,
+      "valid_min": -10,
+      "valid_max": 60
+    },
+    "relative_humidity": {
+      "unit": "percent",
+      "weight": 0.2,
+      "target_min": 85,
+      "target_max": 97,
+      "tolerance_below": 35,
+      "tolerance_above": 3,
+      "valid_min": 0,
+      "valid_max": 100
+    },
+    "soil_moisture": {
+      "unit": "percent",
+      "weight": 0.4,
+      "target_min": 40,
+      "target_max": 80,
+      "tolerance_below": 40,
+      "tolerance_above": 20,
+      "valid_min": 0,
+      "valid_max": 100,
+      "calibration_status": "calibrated_pct_window"
     }
   }
-  
+}

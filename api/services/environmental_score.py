@@ -51,8 +51,8 @@ def calculate_environmental_score(readings, config):
     readings example:
         {
             "air_temperature": 24.0,
-            "relative_humidity": 60.0,
-            "soil_moisture": 600.0,
+            "relative_humidity": 90.0,
+            "soil_moisture": 60.0,  # calibrated percent
         }
     """
     components = {}

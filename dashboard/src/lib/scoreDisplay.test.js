@@ -16,12 +16,13 @@ describe("bandForReading", () => {
   });
 
   it("labels humidity and soil bands", () => {
-    assert.equal(bandForReading("relative_humidity", 30).bandKey, "below");
-    assert.equal(bandForReading("relative_humidity", 30).bandLabel, "too dry");
-    assert.equal(bandForReading("relative_humidity", 80).bandLabel, "too humid");
-    assert.equal(bandForReading("soil_moisture", 300).bandLabel, "too dry");
-    assert.equal(bandForReading("soil_moisture", 600).bandLabel, "in range");
-    assert.equal(bandForReading("soil_moisture", 900).bandLabel, "too wet");
+    assert.equal(bandForReading("relative_humidity", 70).bandKey, "below");
+    assert.equal(bandForReading("relative_humidity", 70).bandLabel, "too dry");
+    assert.equal(bandForReading("relative_humidity", 90).bandLabel, "in range");
+    assert.equal(bandForReading("relative_humidity", 99).bandLabel, "too humid");
+    assert.equal(bandForReading("soil_moisture", 20).bandLabel, "too dry");
+    assert.equal(bandForReading("soil_moisture", 60).bandLabel, "in range");
+    assert.equal(bandForReading("soil_moisture", 90).bandLabel, "too wet");
   });
 });
 
@@ -37,12 +38,12 @@ describe("describeComponent", () => {
   it("pairs reading text with band and suitability", () => {
     const row = describeComponent({
       metric: "relative_humidity",
-      reading: 38,
+      reading: 70,
       score: 6,
     });
 
     assert.equal(row.label, "Humidity");
-    assert.equal(row.readingLabel, "38.0 %");
+    assert.equal(row.readingLabel, "70.0 %");
     assert.equal(row.bandLabel, "too dry");
     assert.equal(row.suitabilityLabel, "6/100");
     assert.equal(row.suitability, 6);

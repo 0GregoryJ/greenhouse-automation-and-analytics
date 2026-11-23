@@ -14,6 +14,9 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from api.services.environmental_score import (
     calculate_environmental_score,
 )
+from api.services.moisture_reading_transform import (
+    transform_moisture_readings,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -37,10 +40,30 @@ def parse_timestamp(value):
     return dt.astimezone(timezone.utc)
 
 
+def calibrated_soil_moisture(client, record, raw_value):
+    """Score soil moisture as calibrated percent from recent raw history."""
+    history_key = (
+        f"greenhouse:history:{record['gateway_id']}:"
+        f"{record['sensor_id']}:soil_moisture"
+    )
+    history = client.lrange(history_key, 0, 9)
+    values = [
+        float(json.loads(event)["value"])
+        for event in history
+    ]
+    if not values:
+        values = [raw_value]
+    calibrated_pct, _state = transform_moisture_readings(values)
+    return float(calibrated_pct)
+
+
 def fetch_latest_for_gateway(client, gateway_id):
     """
     Retrieve the newest reading of each required metric
     for a single gateway.
+
+    Soil moisture is scored as calibrated percent; Redis still stores
+    the underlying raw_capacitance samples used for that transform.
     """
     latest = {}
 
@@ -55,14 +78,24 @@ def fetch_latest_for_gateway(client, gateway_id):
             continue
 
         rule = CONFIG["metrics"][metric]
+        stored_unit = record.get("unit")
 
-        if record.get("unit") != rule["unit"]:
+        if metric == "soil_moisture":
+            if stored_unit != "raw_capacitance":
+                continue
+        elif stored_unit != rule["unit"]:
             continue
 
         try:
             timestamp = parse_timestamp(record["timestamp"])
-            value = float(record["value"])
-        except (KeyError, TypeError, ValueError, OverflowError):
+            raw_value = float(record["value"])
+            if metric == "soil_moisture":
+                value = calibrated_soil_moisture(
+                    client, record, raw_value
+                )
+            else:
+                value = raw_value
+        except (KeyError, TypeError, ValueError, OverflowError, json.JSONDecodeError):
             continue
 
         if (

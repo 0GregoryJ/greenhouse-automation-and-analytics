@@ -2,9 +2,10 @@ import { formatValueText } from "./format.js";
 import { COMPONENT_LABELS } from "./scoreStats.js";
 
 /**
- * Display-only target bands for conditions-v1.
+ * Display-only target bands for conditions-v2.
  * Keep in sync with config/environmental_score.v1.json — changing targets
  * should bump score_version. React does not recompute the composite score.
+ * Live soil readings are calibrated percent (not raw capacitance).
  */
 export const SCORE_TARGET_BANDS = {
   air_temperature: {
@@ -17,16 +18,16 @@ export const SCORE_TARGET_BANDS = {
   },
   relative_humidity: {
     unit: "percent",
-    targetMin: 50,
-    targetMax: 70,
+    targetMin: 85,
+    targetMax: 97,
     belowLabel: "too dry",
     inRangeLabel: "in range",
     aboveLabel: "too humid",
   },
   soil_moisture: {
-    unit: "raw_capacitance",
-    targetMin: 450,
-    targetMax: 800,
+    unit: "percent",
+    targetMin: 40,
+    targetMax: 80,
     belowLabel: "too dry",
     inRangeLabel: "in range",
     aboveLabel: "too wet",
