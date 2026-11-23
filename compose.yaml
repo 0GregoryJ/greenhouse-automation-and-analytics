@@ -28,6 +28,7 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?Kafka address required}
       KAFKA_TOPIC: ${KAFKA_TOPIC:-greenhouse.sensor-readings}
+      KAFKA_AUTOMATION_TOPIC: ${KAFKA_AUTOMATION_TOPIC:-greenhouse.automation.events.v1}
       LIVE_KAFKA_CONSUMER_GROUP: ${LIVE_KAFKA_CONSUMER_GROUP:-greenhouse-live-dev}
       REDIS_HOST: redis
 

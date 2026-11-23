@@ -231,3 +231,32 @@ def get_latest_readings():
             status_code=503,
             detail="Sensor readings are temporarily unavailable",
         )
+# ---------------------------------------------------------------------
+# Live automation events (most recent 10)
+# ---------------------------------------------------------------------
+
+@app.get("/api/v1/automation/events/recent")
+def get_recent_automation_events():
+    """Return the latest 10 automation events from Redis."""
+
+    try:
+        events = redis_client.lrange(
+            "greenhouse:automation:recent",
+            0,
+            9,
+        )
+
+        parsed_events = [json.loads(event) for event in events]
+
+        return {
+            "count": len(parsed_events),
+            "events": parsed_events,
+        }
+
+    except (redis.RedisError, ValueError, TypeError):
+        logger.exception("Unable to retrieve automation events")
+
+        raise HTTPException(
+            status_code=503,
+            detail="Automation events are temporarily unavailable",
+        )

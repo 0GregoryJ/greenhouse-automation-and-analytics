@@ -287,13 +287,6 @@
   font-weight: 500;
 }
 
-.score-components-hint {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
 .score-components {
   list-style: none;
   margin: 0 0 12px;
@@ -315,22 +308,9 @@
   color: var(--muted);
 }
 
-.score-component-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .score-component-label {
   font-weight: 600;
   color: var(--text);
-}
-
-.score-component-suitability {
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
 }
 
 .score-component-reading {
@@ -354,20 +334,6 @@
 .score-components li.band-below .score-component-band,
 .score-components li.band-above .score-component-band {
   color: var(--stale);
-}
-
-.score-component-meter {
-  height: 4px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--track);
-}
-
-.score-component-meter span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
 }
 
 .score-footnote,

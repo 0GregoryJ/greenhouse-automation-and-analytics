@@ -229,8 +229,11 @@ def run_one_kafka_message(
 ):
     """Run main() with one fake Kafka message."""
 
+    sensor_topic = "greenhouse.sensor-readings"
+
     message = Mock()
     message.error.return_value = None
+    message.topic.return_value = sensor_topic
     message.value.return_value = json.dumps(
         sensor_event
     ).encode("utf-8")
@@ -259,6 +262,7 @@ def run_one_kafka_message(
         )
     else:
         redis_connection.eval.return_value = 1
+        redis_connection.pipeline.return_value = Mock()
 
     monkeypatch.setattr(live, "running", True)
     monkeypatch.setattr(
@@ -272,7 +276,8 @@ def run_one_kafka_message(
 
     for name, value in {
         "KAFKA_BOOTSTRAP_SERVERS": "test-kafka:9092",
-        "KAFKA_TOPIC": "greenhouse.sensor-readings",
+        "KAFKA_TOPIC": sensor_topic,
+        "KAFKA_AUTOMATION_TOPIC": "greenhouse.automation.events.v1",
         "LIVE_KAFKA_CONSUMER_GROUP": "greenhouse-test",
         "REDIS_HOST": "test-redis",
     }.items():

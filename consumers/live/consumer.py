@@ -42,8 +42,7 @@ signal.signal(signal.SIGTERM, shutdown)
 signal.signal(signal.SIGINT, shutdown)
 
 
-# Update only if the incoming reading is at least as recent.
-# Redis executes this script atomically.
+# Confit and Lua scripts
 UPDATE_LATEST = """
 local current = redis.call("HGET", KEYS[1], "timestamp_ms")
 local incoming = tonumber(ARGV[1])
@@ -67,6 +66,76 @@ redis.call(
 return 1
 """
 
+
+WRITE_AUTOMATION_EVENT = """
+local existing = redis.call("LRANGE", KEYS[1], 0, -1)
+
+for _, value in ipairs(existing) do
+    local event = cjson.decode(value)
+
+    if event.event_id == ARGV[1] then
+        return 0
+    end
+end
+
+redis.call("LPUSH", KEYS[1], ARGV[2])
+redis.call("LTRIM", KEYS[1], 0, tonumber(ARGV[3]) - 1)
+
+return 1
+"""
+
+AUTOMATION_EVENTS_KEY = "greenhouse:automation:recent"
+MAX_AUTOMATION_EVENTS = 10
+
+AUTOMATION_EVENT_TYPES = {
+    "command_issued",
+    "command_acknowledged",
+    "command_failed",
+    "state_changed",
+}
+
+AUTOMATION_ACTUATORS = {"fan", "pump"}
+
+def parse_automation_event(raw_value):
+    """Decode and validate an automation event for the live view."""
+
+    event = json.loads(raw_value)
+
+    if not isinstance(event, dict):
+        raise ValueError("Automation event must be a JSON object")
+
+    required = (
+        "schema_version",
+        "event_id",
+        "timestamp_utc",
+        "actuator",
+        "event_type",
+    )
+
+    for field in required:
+        if field not in event:
+            raise ValueError(f"Missing required field: {field}")
+
+    if type(event["schema_version"]) is not int or event["schema_version"] != 1:
+        raise ValueError("Unsupported automation schema version")
+
+    if not isinstance(event["event_id"], str) or not event["event_id"]:
+        raise ValueError("Invalid event_id")
+
+    if event["actuator"] not in AUTOMATION_ACTUATORS:
+        raise ValueError("Invalid actuator")
+
+    if event["event_type"] not in AUTOMATION_EVENT_TYPES:
+        raise ValueError("Invalid event_type")
+
+    event_time = datetime.fromisoformat(
+        event["timestamp_utc"].replace("Z", "+00:00")
+    )
+
+    if event_time.utcoffset() is None:
+        raise ValueError("Timestamp must include a timezone")
+
+    return event
 
 def parse_event(raw_value):
     """Decode and validate the fields needed for the live view."""
@@ -144,9 +213,25 @@ def write_history(redis_client, event):
 
     return key
 
+
+def write_automation_event(redis_client, event):
+    """Store up to 10 recent automation events without duplicates."""
+
+    return bool(
+        redis_client.eval(
+            WRITE_AUTOMATION_EVENT,
+            1,
+            AUTOMATION_EVENTS_KEY,
+            event["event_id"],
+            json.dumps(event),
+            MAX_AUTOMATION_EVENTS,
+        )
+    )
+
 def main():
     kafka_servers = os.environ["KAFKA_BOOTSTRAP_SERVERS"]
     kafka_topic = os.environ["KAFKA_TOPIC"]
+    automation_topic = os.environ["KAFKA_AUTOMATION_TOPIC"]
     redis_host = os.environ["REDIS_HOST"]
     consumer_group = os.environ["LIVE_KAFKA_CONSUMER_GROUP"]
 
@@ -158,7 +243,7 @@ def main():
         socket_timeout=5,
     )
 
-    # Verify Redis is available before starting Kafka consumption.
+    # Verify Redis before consuming Kafka messages.
     redis_client.ping()
 
     consumer = Consumer({
@@ -170,8 +255,13 @@ def main():
         "client.id": "greenhouse-live-consumer",
     })
 
-    consumer.subscribe([kafka_topic])
-    logger.info("Subscribed to Kafka topic: %s", kafka_topic)
+    consumer.subscribe([kafka_topic, automation_topic])
+
+    logger.info(
+        "Subscribed to Kafka topics: %s, %s",
+        kafka_topic,
+        automation_topic,
+    )
 
     try:
         while running:
@@ -183,44 +273,79 @@ def main():
             if message.error():
                 raise KafkaException(message.error())
 
-            # Parse the Kafka message.
             try:
-                event, timestamp_ms = parse_event(message.value())
+                # ---------------------------------------------
+                # Automation events
+                # ---------------------------------------------
+                if message.topic() == automation_topic:
+                    event = parse_automation_event(message.value())
+
+                    inserted = write_automation_event(
+                        redis_client,
+                        event,
+                    )
+
+                    logger.info(
+                        "Processed automation event=%s actuator=%s "
+                        "type=%s inserted=%s",
+                        event["event_id"],
+                        event["actuator"],
+                        event["event_type"],
+                        inserted,
+                    )
+
+                # ---------------------------------------------
+                # Sensor events
+                # ---------------------------------------------
+                elif message.topic() == kafka_topic:
+                    event, timestamp_ms = parse_event(message.value())
+
+                    key, updated = write_latest(
+                        redis_client,
+                        event,
+                        timestamp_ms,
+                    )
+
+                    if updated:
+                        write_history(redis_client, event)
+
+                    logger.info(
+                        "Processed sensor event=%s key=%s updated=%s",
+                        event["event_id"],
+                        key,
+                        updated,
+                    )
+
+                # ---------------------------------------------
+                # Unexpected topics
+                # ---------------------------------------------
+                else:
+                    logger.warning(
+                        "Unexpected Kafka topic: %s",
+                        message.topic(),
+                    )
+                    continue
 
             except (ValueError, TypeError, KeyError) as exc:
                 logger.warning(
-                    "Skipping malformed event at partition=%s offset=%s: %s",
+                    "Skipping malformed event topic=%s "
+                    "partition=%s offset=%s: %s",
+                    message.topic(),
                     message.partition(),
                     message.offset(),
                     exc,
                 )
 
-                # Skip invalid data so it doesn't block the consumer.
-                # Production systems should quarantine these events.
-                consumer.commit(
-                    message=message,
-                    asynchronous=False,
-                )
-                continue
+            # ---------------------------------------------
+            # Commit Kafka offset
+            # ---------------------------------------------
+            # Commit only after Redis processing succeeds,
+            # or after explicitly skipping invalid data.
+            # Redis failures propagate without a commit.
 
-            # Write valid events to Redis.
-            # Redis failures are intentionally not caught here.
-            key, updated = write_latest(redis_client, event, timestamp_ms)
-
-            if updated:
-                write_history(redis_client, event)
-
-            # Commit only after the Redis operation succeeds.
             consumer.commit(
                 message=message,
                 asynchronous=False,
-            )
-
-            logger.info(
-                "Processed event=%s key=%s updated=%s",
-                event["event_id"],
-                key,
-                updated,
             )
 
     finally:

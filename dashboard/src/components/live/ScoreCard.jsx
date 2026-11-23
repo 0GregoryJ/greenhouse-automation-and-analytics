@@ -137,49 +137,22 @@ export function ScoreCard({
           )}
 
           {components.length > 0 && (
-            <>
-              <p className="score-components-hint">
-                Factor scores are suitability out of 100, not the sensor
-                reading.
-              </p>
-              <ul className="score-components">
-                {components.map((row) => {
-                  const width =
-                    row.suitability === null
-                      ? 0
-                      : Math.min(100, Math.max(0, row.suitability));
-
-                  return (
-                    <li key={row.metric} className={`band-${row.bandKey}`}>
-                      <div className="score-component-head">
-                        <span className="score-component-label">{row.label}</span>
-                        <span className="score-component-suitability">
-                          {row.suitabilityLabel}
-                        </span>
-                      </div>
-                      <p className="score-component-reading">
-                        <span>{row.readingLabel}</span>
-                        <span className="score-component-band">
-                          {row.bandLabel}
-                        </span>
-                      </p>
-                      <div
-                        className="score-component-meter"
-                        role="img"
-                        aria-label={`${row.label} suitability ${row.suitabilityLabel}`}
-                      >
-                        <span style={{ width: `${width}%` }} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
+            <ul className="score-components">
+              {components.map((row) => (
+                <li key={row.metric} className={`band-${row.bandKey}`}>
+                  <span className="score-component-label">{row.label}</span>
+                  <p className="score-component-reading">
+                    <span>{row.readingLabel}</span>
+                    <span className="score-component-band">{row.bandLabel}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
           )}
 
           <p className="score-footnote">
-            Suitability vs configured targets — not verified plant health.
-            Soil moisture calibration is provisional.
+            Composite score vs configured targets — not verified plant health.
+            Factor rows show the reading and target category only.
             {measuredAt && (
               <>
                 {" "}
