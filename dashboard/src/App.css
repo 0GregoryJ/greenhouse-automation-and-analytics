@@ -57,9 +57,16 @@
   padding: 4px 4px 8px;
 }
 
+.sidebar.is-collapsed {
+  padding-inline: 12px;
+  align-items: center;
+}
+
 .sidebar.is-collapsed .sidebar-brand {
   justify-content: center;
-  width: 100%;
+  gap: 0;
+  width: auto;
+  padding: 0;
 }
 
 .sidebar-collapse {
@@ -85,11 +92,20 @@
 .sidebar.is-collapsed .sidebar-top {
   flex-direction: column;
   align-items: center;
+  width: 100%;
+}
+
+.sidebar.is-collapsed .sidebar-nav,
+.sidebar.is-collapsed .sidebar-footer-nav {
+  width: 100%;
+  align-items: center;
 }
 
 .sidebar.is-collapsed .side-link {
   justify-content: center;
-  padding-inline: 10px;
+  gap: 0;
+  width: 44px;
+  padding: 13px;
 }
 
 .sidebar-brand-mark {
@@ -118,9 +134,7 @@
 }
 
 .sidebar-brand-text.is-collapsed {
-  opacity: 0;
-  max-width: 0;
-  pointer-events: none;
+  display: none;
 }
 
 .sidebar-brand-title {
@@ -148,8 +162,7 @@
 }
 
 .side-link-label.is-collapsed {
-  opacity: 0;
-  max-width: 0;
+  display: none;
 }
 
 .sidebar-nav,
