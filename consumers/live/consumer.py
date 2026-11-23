@@ -127,6 +127,22 @@ def write_latest(redis_client, event, timestamp_ms):
 
     return key, bool(updated)
 
+def write_history(redis_client, event):
+    """Store the 10 most recent events for a sensor and measurement."""
+
+    key = (
+        f"greenhouse:history:{event['gateway_id']}:"
+        f"{event['sensor_id']}:{event['measurement_type']}"
+    )
+
+    pipe = redis_client.pipeline()
+
+    pipe.lpush(key, json.dumps(event))
+    pipe.ltrim(key, 0, 9)
+
+    pipe.execute()
+
+    return key
 
 def main():
     kafka_servers = os.environ["KAFKA_BOOTSTRAP_SERVERS"]
@@ -189,9 +205,10 @@ def main():
 
             # Write valid events to Redis.
             # Redis failures are intentionally not caught here.
-            key, updated = write_latest(
-                redis_client, event, timestamp_ms
-            )
+            key, updated = write_latest(redis_client, event, timestamp_ms)
+
+            if updated:
+                write_history(redis_client, event)
 
             # Commit only after the Redis operation succeeds.
             consumer.commit(

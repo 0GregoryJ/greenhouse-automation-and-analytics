@@ -84,12 +84,55 @@ def test_latest_returns_real_redis_data(
             "gateway_id": "pi-001",
             "sensor_id": "bme280-001",
             "measurement_type": "air_temperature",
-            "value": 23.4,
+            "raw_value": 23.4,
             "unit": "celsius",
             "timestamp": "2026-10-28T18:00:00Z",
             "event_id": sensor_event["event_id"],
         }
     ]
+
+
+def test_latest_soil_moisture_includes_calibration(
+    client,
+    redis_client,
+    sensor_event,
+):
+    event = dict(sensor_event)
+    event["sensor_id"] = "soil-001"
+    event["measurement_type"] = "soil_moisture"
+    event["value"] = 1010
+    event["unit"] = "raw_capacitance"
+
+    parsed, timestamp_ms = live.parse_event(
+        json.dumps(event)
+    )
+    live.write_latest(
+        redis_client,
+        parsed,
+        timestamp_ms,
+    )
+
+    history_key = (
+        "greenhouse:history:pi-001:soil-001:soil_moisture"
+    )
+    for value in [1000, 1005, 1010, 980, 970, 995, 1002, 960, 1015, 990]:
+        redis_client.lpush(
+            history_key,
+            json.dumps({**event, "value": value}),
+        )
+
+    response = client.get("/api/v1/sensors/latest")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+
+    reading = body["readings"][0]
+    assert reading["measurement_type"] == "soil_moisture"
+    assert reading["raw_value"] == 1010.0
+    assert reading["unit"] == "raw_capacitance"
+    assert reading["calibrated_pct"] == 70
+    assert reading["state"] == "wet-like"
 
 
 def test_latest_returns_sorted_readings(

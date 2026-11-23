@@ -18,6 +18,7 @@ import sqlite3
 import threading
 import time
 import uuid
+import numpy as np
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,8 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
+# Config
+
 MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.getenv("MQTT_PORT") or "1883")
 TELEMETRY_TOPIC = os.getenv("MQTT_SENSOR_TOPIC") or "greenhouse/telemetry"
@@ -37,6 +40,7 @@ SHELLY = {
     "fan": os.environ["SHELLY_FAN_ID"],
     "pump": os.environ["SHELLY_PUMP_ID"],
 }
+
 RPC_SOURCE = "greenhouse/controller"
 RPC_RESPONSE_TOPIC = f"{RPC_SOURCE}/rpc"
 TEMP_TYPE = "air_temperature"  # Matches your current telemetry
@@ -46,10 +50,11 @@ FAN_ON_TEMP = 24
 FAN_OFF_TEMP = 21
 
 PUMP_AUTO_ENABLED = True
-PUMP_MOISTURE_THRESHOLD = 600
-PUMP_RUN_SECONDS = 5
-PUMP_COOLDOWN = 43200
-PUMP_MAX_CYCLES = 1
+PUMP_MOISTURE_THRESHOLD = 40
+MOISTURE_WINDOW_SIZE = 10
+PUMP_RUN_SECONDS = 8
+PUMP_COOLDOWN = 10080
+PUMP_MAX_CYCLES = 4
 PUMP_MIN_VALID_RAW = 450
 PUMP_MAX_VALID_RAW = 1200
 PUMP_REQUIRED_LOW_READINGS = 3
@@ -70,8 +75,8 @@ if FAN_OFF_TEMP >= FAN_ON_TEMP:
     raise ValueError("FAN_OFF_TEMP must be lower than FAN_ON_TEMP")
 if not 0 < PUMP_RUN_SECONDS <= 10:
     raise ValueError("PUMP_RUN_SECONDS must be > 0 and <= 10")
-if not PUMP_MIN_VALID_RAW < PUMP_MOISTURE_THRESHOLD < PUMP_MAX_VALID_RAW:
-    raise ValueError("Moisture threshold must lie strictly within plausible raw range")
+if not 0 < PUMP_MOISTURE_THRESHOLD < 100:
+    raise ValueError("Moisture threshold must lie strictly between 0 and 100")
 if PUMP_COOLDOWN < 0 or PUMP_MAX_CYCLES < 1 or PUMP_REQUIRED_LOW_READINGS < 1:
     raise ValueError("Invalid pump cooldown, cycle limit, or reading count")
 
@@ -105,6 +110,25 @@ def source_is_recent(event):
     age = (datetime.now(timezone.utc) - timestamp).total_seconds()
     return -5 <= age <= MAX_READING_AGE
 
+def transform_moisture_readings(readings):
+    """Calculate a calibrated soil moisture reading (percentage) by computing what fraction of the last
+    10 raw readings were above 990 and multiplying by 100. If >=4/10 -> wet-like, if < 4/10 -> dry-like.
+    """
+    qty_above_990 = 0
+    for reading in readings:
+        #10 readings expected but compute the fraction of any length list
+        if reading >= 990:
+            qty_above_990 += 1
+
+    calibrated_pct = int(100*(np.round((qty_above_990/len(readings)), 2)))
+
+    if calibrated_pct >= 40:
+        state = "wet-like"
+    else:
+        state = "dry-like"
+
+    return (calibrated_pct, state)
+
 
 class AutomationController:
     def __init__(self, db_path=STATE_DB_PATH):
@@ -121,6 +145,8 @@ class AutomationController:
         self.rpc_requests = {}
         self.readings = {}
         self.seen_sensor_ids = deque(maxlen=256)
+
+        self.moisture_history = deque(maxlen=MOISTURE_WINDOW_SIZE)
         self.low_moisture_count = 0
         self.active_pump_cycle = None
         self.pump_on_at = None
@@ -347,7 +373,7 @@ class AutomationController:
         if self.active_pump_cycle is not None:
             return
         if moisture >= PUMP_MOISTURE_THRESHOLD:
-            return  # Higher readings tentatively mean wetter soil.
+            return  # Calibrated moisture is above the irrigation threshold.
         cycle_id = uuid.uuid4().hex
         # Reserve an attempt durably BEFORE publishing an ON command.
         self.record_pump_attempt(cycle_id)
@@ -444,6 +470,7 @@ class AutomationController:
                 self.pending[actuator] = None
             self.rpc_requests.clear()
             self.readings.clear()
+            self.moisture_history.clear()
             self.low_moisture_count = 0
             self.seen_sensor_ids.clear()
             self.active_pump_cycle = None
@@ -476,6 +503,7 @@ class AutomationController:
             self.pending = {"fan": None, "pump": None}
             self.rpc_requests.clear()
             self.readings.clear()
+            self.moisture_history.clear()
             self.active_pump_cycle = None
             self.pump_on_at = None
             self.pump_command_at = None
@@ -534,19 +562,62 @@ class AutomationController:
         if kind == MOISTURE_TYPE:
             if MOISTURE_SENSOR_ID and event.get("sensor_id") != MOISTURE_SENSOR_ID:
                 return
-            # ~300 in air is considered invalid, never an irrigation trigger.
+
+            # Reject implausible raw measurements.
             if not PUMP_MIN_VALID_RAW <= value <= PUMP_MAX_VALID_RAW:
                 self.low_moisture_count = 0
-                logging.warning("Implausible moisture reading %.1f: watering inhibited", value)
+                self.moisture_history.clear()
+                logging.warning(
+                    "Implausible moisture reading %.1f: watering inhibited",
+                    value,
+                )
                 return
+
             if not timestamp_ok:
                 self.low_moisture_count = 0
-                logging.warning("Moisture lacks fresh source timestamp; watering inhibited")
+                self.moisture_history.clear()
+                logging.warning(
+                    "Moisture lacks fresh source timestamp; watering inhibited"
+                )
                 return
-            if value < PUMP_MOISTURE_THRESHOLD:
+
+            # Add the new raw measurement to the rolling window.
+            self.moisture_history.append(value)
+
+            # Require a full window before allowing irrigation.
+            if len(self.moisture_history) < MOISTURE_WINDOW_SIZE:
+                self.low_moisture_count = 0
+                return
+
+            # Transform raw readings into calibrated moisture.
+            calibrated_pct, state = transform_moisture_readings(
+                list(self.moisture_history)
+            )
+
+            if not isinstance(calibrated_pct, (int, float)) or not math.isfinite(calibrated_pct):
+                self.low_moisture_count = 0
+                return
+
+            if not 0 <= calibrated_pct <= 100:
+                self.low_moisture_count = 0
+                return
+
+            # Compare calibrated percentage instead of raw value.
+            if calibrated_pct < PUMP_MOISTURE_THRESHOLD:
                 self.low_moisture_count += 1
             else:
                 self.low_moisture_count = 0
+
+            logging.info(
+                "Soil moisture: raw=%.1f calibrated=%.0f%% state=%s low_count=%d",
+                value,
+                calibrated_pct,
+                state,
+                self.low_moisture_count,
+            )
+
+            # Store calibrated percentage for automation decisions.
+            value = calibrated_pct
         else:
             if not -20 <= value <= 70:
                 return  # Celsius range; adjust if needed.

@@ -1,4 +1,10 @@
-import { formatAge, formatChartTooltipTime, formatValue, PERIOD_LABELS } from "../../lib/format.js";
+import {
+  formatAge,
+  formatChartTooltipTime,
+  formatLiveReadingLabel,
+  formatValue,
+  PERIOD_LABELS,
+} from "../../lib/format.js";
 
 export function HistorySummary({
   summary,
@@ -85,13 +91,8 @@ export function HistorySummary({
         {liveReading && (
           <p className="summary-live">
             Live now:{" "}
-            <strong>
-              {formatValue(liveReading).number}
-              {formatValue(liveReading).suffix
-                ? ` ${formatValue(liveReading).suffix}`
-                : ""}
-            </strong>{" "}
-            — distinct from the period statistics above.
+            <strong>{formatLiveReadingLabel(liveReading)}</strong> — distinct
+            from the period statistics above.
           </p>
         )}
       </div>

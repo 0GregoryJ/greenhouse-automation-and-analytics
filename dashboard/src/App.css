@@ -479,6 +479,24 @@
   color: var(--muted);
 }
 
+.moisture-state {
+  margin: -4px 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.moisture-state-wet {
+  color: var(--live);
+}
+
+.moisture-state-dry {
+  color: var(--stale);
+}
+
+.moisture-state-other {
+  color: var(--muted);
+}
+
 .meter {
   height: 4px;
   overflow: hidden;

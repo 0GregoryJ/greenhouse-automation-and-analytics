@@ -11,6 +11,7 @@ The API serves both live and historical measurements without
 directly consuming Kafka events.
 """
 
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -21,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.history import router as history_router
 from api.routes.environment import router as environment_router
+from api.services.moisture_reading_transform import transform_moisture_readings
 
 
 # ---------------------------------------------------------------------
@@ -136,15 +138,15 @@ def health():
 @app.get("/api/v1/sensors/latest")
 def get_latest_readings():
     """
-    Return the latest known measurement for each sensor and metric.
+    Return the latest measurement for each sensor and metric.
 
-    The live Kafka consumer maintains these readings in Redis.
+    Soil moisture measurements are enriched using the
+    10 most recent raw readings stored in Redis.
     """
     try:
         readings = []
         cursor = 0
 
-        # SCAN avoids blocking Redis like KEYS can.
         while True:
             cursor, keys = redis_client.scan(
                 cursor=cursor,
@@ -164,15 +166,48 @@ def get_latest_readings():
                     if not record:
                         continue
 
-                    readings.append({
+                    measurement_type = record.get("measurement_type")
+                    raw_value = float(record["value"])
+
+                    reading = {
                         "gateway_id": record.get("gateway_id"),
                         "sensor_id": record.get("sensor_id"),
-                        "measurement_type": record.get("measurement_type"),
-                        "value": float(record["value"]),
+                        "measurement_type": measurement_type,
+                        "raw_value": raw_value,
                         "unit": record.get("unit"),
                         "timestamp": record.get("timestamp"),
                         "event_id": record.get("event_id"),
-                    })
+                    }
+
+                    # Apply calibration only to soil moisture.
+                    if measurement_type == "soil_moisture":
+
+                        history_key = (
+                            f"greenhouse:history:{record['gateway_id']}:"
+                            f"{record['sensor_id']}:{measurement_type}"
+                        )
+
+                        history = redis_client.lrange(
+                            history_key, 0, 9
+                        )
+
+                        values = [
+                            float(json.loads(event)["value"])
+                            for event in history
+                        ]
+
+                        # Fallback if history is empty.
+                        if not values:
+                            values = [raw_value]
+
+                        calibrated_pct, state = transform_moisture_readings(
+                            values
+                        )
+
+                        reading["calibrated_pct"] = calibrated_pct
+                        reading["state"] = state
+
+                    readings.append(reading)
 
             if cursor == 0:
                 break
@@ -190,7 +225,7 @@ def get_latest_readings():
             "readings": readings,
         }
 
-    except (redis.RedisError, ValueError, KeyError):
+    except (redis.RedisError, ValueError, KeyError, TypeError):
         logger.exception("Unable to retrieve latest readings")
         raise HTTPException(
             status_code=503,

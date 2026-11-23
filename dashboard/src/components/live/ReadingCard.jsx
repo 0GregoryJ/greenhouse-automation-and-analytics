@@ -1,14 +1,26 @@
-import { ageMs, formatAge, formatValue, isStale } from "../../lib/format.js";
+import {
+  ageMs,
+  formatAge,
+  formatLiveReading,
+  formatMoistureState,
+  isStale,
+} from "../../lib/format.js";
 import { metricInfo } from "../../lib/metrics.js";
 
 export function ReadingCard({ reading, now }) {
   const { label } = metricInfo(reading.measurement_type);
-  const { number, suffix } = formatValue(reading);
+  const display = formatLiveReading(reading);
+  const moistureState = display.isCalibratedMoisture
+    ? formatMoistureState(display.state)
+    : null;
   const stale = isStale(reading.timestamp, now);
   const age = formatAge(ageMs(reading.timestamp, now));
 
-  const showMeter = reading.unit === "percent";
-  const meterWidth = Math.min(100, Math.max(0, Number(reading.value) || 0));
+  const showMeter =
+    display.unit === "percent" &&
+    display.value !== null &&
+    Number.isFinite(Number(display.value));
+  const meterWidth = Math.min(100, Math.max(0, Number(display.value) || 0));
 
   return (
     <article className={stale ? "card is-stale" : "card"}>
@@ -21,15 +33,25 @@ export function ReadingCard({ reading, now }) {
       </header>
 
       <p className="value">
-        <span className="number">{number}</span>
-        <span className="suffix">{suffix}</span>
+        <span className="number">{display.number}</span>
+        <span className="suffix">{display.suffix}</span>
       </p>
+
+      {moistureState && (
+        <p className={`moisture-state moisture-state-${moistureState.key}`}>
+          {moistureState.label}
+        </p>
+      )}
 
       {showMeter && (
         <div
           className="meter"
           role="img"
-          aria-label={`${label} ${number}${suffix}`}
+          aria-label={
+            moistureState
+              ? `${label} ${display.number}${display.suffix}, ${moistureState.label}`
+              : `${label} ${display.number}${display.suffix}`
+          }
         >
           <span style={{ width: `${meterWidth}%` }} />
         </div>

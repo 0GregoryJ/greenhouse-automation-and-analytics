@@ -105,7 +105,9 @@ def pump_on_commands(ctl):
 
 
 def test_pump_requires_three_separate_fresh_low_readings(module, ctl):
-    for i in range(2):
+    # Calibration needs a full 10-sample window; only then do calibrated
+    # lows (raw < 990 → 0%) count toward PUMP_REQUIRED_LOW_READINGS.
+    for _ in range(11):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 580))
     assert not pump_on_commands(ctl)
     ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 580))
@@ -127,6 +129,8 @@ def test_bad_or_stale_moisture_cannot_activate_pump(module, ctl):
 
 
 def test_duplicate_event_id_is_not_three_independent_low_readings(module, ctl):
+    for _ in range(9):
+        ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
     event = reading(module, module.MOISTURE_TYPE, 575, "duplicate-123")
     for _ in range(3):
         ctl.handle_telemetry(event)
@@ -135,7 +139,7 @@ def test_duplicate_event_id_is_not_three_independent_low_readings(module, ctl):
 
 
 def test_pump_attempt_budget_survives_restart(module, ctl):
-    for _ in range(3):
+    for _ in range(12):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
     assert len(pump_on_commands(ctl)) == 1
     restarted = module.AutomationController(ctl.db_path)
@@ -187,7 +191,7 @@ def test_pump_stays_off_when_automation_is_disabled(module, ctl, monkeypatch):
 
 
 def test_unconfirmed_pump_on_is_followed_by_safety_off(module, ctl):
-    for _ in range(3):
+    for _ in range(12):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
     assert len(pump_on_commands(ctl)) == 1
     # Previous reported relay state may still be OFF, but ON could have executed.
@@ -203,7 +207,7 @@ def test_unconfirmed_pump_on_is_followed_by_safety_off(module, ctl):
 
 
 def test_command_timeout_does_not_retry_uncertain_pump_on(module, ctl):
-    for _ in range(3):
+    for _ in range(12):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
     assert len(pump_on_commands(ctl)) == 1
     req_id = ctl.pending["pump"]["id"]

@@ -31,6 +31,86 @@ export function formatValue({ value, unit }) {
   }
 }
 
+/**
+ * Live API readings use `raw_value`; soil moisture may also include
+ * `calibrated_pct` + `state`. Prefer calibrated % for live soil display.
+ */
+export function liveDisplayValue(reading) {
+  if (!reading) {
+    return { value: null, unit: null, state: null, isCalibratedMoisture: false };
+  }
+
+  const isSoil = reading.measurement_type === "soil_moisture";
+  const calibrated = reading.calibrated_pct;
+  const hasCalibrated =
+    isSoil &&
+    calibrated !== null &&
+    calibrated !== undefined &&
+    Number.isFinite(Number(calibrated));
+
+  if (hasCalibrated) {
+    return {
+      value: Number(calibrated),
+      unit: "percent",
+      state: reading.state ?? null,
+      isCalibratedMoisture: true,
+      rawValue: reading.raw_value ?? reading.value ?? null,
+    };
+  }
+
+  return {
+    value:
+      reading.value ??
+      reading.raw_value ??
+      null,
+    unit: reading.unit ?? null,
+    state: reading.state ?? null,
+    isCalibratedMoisture: false,
+    rawValue: reading.raw_value ?? reading.value ?? null,
+  };
+}
+
+export function formatLiveReading(reading) {
+  const display = liveDisplayValue(reading);
+  if (display.isCalibratedMoisture) {
+    return {
+      ...display,
+      number: String(Math.round(Number(display.value))),
+      suffix: "%",
+    };
+  }
+  return {
+    ...display,
+    ...formatValue({ value: display.value, unit: display.unit }),
+  };
+}
+
+export function formatLiveReadingLabel(reading) {
+  const live = formatLiveReading(reading);
+  const valueText = live.suffix
+    ? `${live.number} ${live.suffix}`
+    : live.number;
+  if (!live.isCalibratedMoisture) return valueText;
+
+  const state = formatMoistureState(live.state);
+  return state ? `${valueText} (${state.label})` : valueText;
+}
+
+export function formatMoistureState(state) {
+  if (!state) return null;
+
+  const normalized = String(state).toLowerCase();
+
+  if (normalized === "wet-like") return { key: "wet", label: "Wet-like" };
+  if (normalized === "dry-like") return { key: "dry", label: "Dry-like" };
+
+  const label = normalized.replace(/_/g, " ");
+  return {
+    key: "other",
+    label: label.charAt(0).toUpperCase() + label.slice(1),
+  };
+}
+
 export function formatValueText(reading) {
   const { number, suffix } = formatValue(reading);
   return suffix ? `${number} ${suffix}` : number;
