@@ -155,6 +155,7 @@ class AutomationController:
         self.last_emergency_off = -1e9
         self.event_inflight = {}  # MQTT packet id -> (event id, sent monotonic)
         self.event_attempts = {}  # event id -> monotonic timestamp
+        self.last_known_state = {"fan": None, "pump": None}
 
     def _db(self):
         conn = sqlite3.connect(self.db_path, timeout=20)
@@ -394,17 +395,30 @@ class AutomationController:
     def handle_shelly_state(self, actuator, state):
         if type(state) is not bool:
             return
+
         now = time.monotonic()
-        previous = self.observed[actuator]
+        previous = self.last_known_state[actuator]
+
+        # Current confirmed state for automation decisions
         self.observed[actuator] = state
         self.observed_at[actuator] = now
-        if previous is None or previous != state:
-            # 'initial_observation' marks a baseline, not necessarily a transition.
-            reason = "initial_observation" if previous is None else "shelly_status"
-            details = {"observed_state": state, "reason": reason}
+
+        # Only emit actual transitions, not initial observations
+        if previous is not None and previous != state:
+            details = {
+                "observed_state": state,
+                "reason": "shelly_status",
+            }
+
             if actuator == "pump" and self.active_pump_cycle:
                 details["cycle_id"] = self.active_pump_cycle
+
             self.emit(actuator, "state_changed", **details)
+
+        # Preserve last known state across connection interruptions
+        self.last_known_state[actuator] = state
+
+        # Clear pending commands when their desired state is confirmed
         current = self.pending[actuator]
         if current is not None and current["desired"] == state:
             self.pending[actuator] = None
@@ -416,17 +430,25 @@ class AutomationController:
                 elif self.pump_on_at is None:
                     self.pump_on_at = now
             else:
+                was_on = self.pump_on_at is not None
                 self.pump_on_at = None
-                if (self.active_pump_cycle is not None
-                        and (self.pump_on_at is not None
-                             or (self.pump_command_at is not None
-                                 and now - self.pump_command_at >= PUMP_RUN_SECONDS))):
+
+                if (
+                    self.active_pump_cycle is not None
+                    and (
+                        was_on
+                        or (
+                            self.pump_command_at is not None
+                            and now - self.pump_command_at >= PUMP_RUN_SECONDS
+                        )
+                    )
+                ):
                     # Ignore a potentially old OFF status that races with ON.
                     self.active_pump_cycle = None
                     self.pump_command_at = None
                     self.low_moisture_count = 0
-            # Do not immediately re-evaluate the pump from status feedback.
-            # Only a *new* moisture measurement may trigger another cycle.
+
+            # Only a new moisture measurement may trigger another cycle.
         else:
             self.evaluate_fan()
 
