@@ -7,11 +7,15 @@ WORKDIR /app
 
 # Install API dependencies.
 COPY requirements/api.txt requirements.txt
+COPY requirements/dbt.txt dbt-requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r dbt-requirements.txt
+
 
 # Copy the FastAPI application and shared scoring config.
 COPY api/ ./api/
 COPY config/ ./config/
+copy warehouse/ ./warehouse/
 
 # Run as a non-root user.
 RUN useradd --create-home appuser

@@ -188,6 +188,7 @@ jobs:
         run: dbt debug
 
       - name: Build models and run tests
+        run: dbt parse
         run: dbt build --target prod
 
   # ------------------------------------------------------------
