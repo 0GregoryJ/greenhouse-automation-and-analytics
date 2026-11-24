@@ -1,10 +1,10 @@
-# Environmental Conditions Score — Version 1
+# Environmental Conditions Score — `conditions-v2`
 
 ## Purpose
 
 The Environmental Conditions Score is a rules-based indicator of how closely monitored greenhouse conditions align with a generalized set of growing-environment targets.
 
-It combines air temperature, relative humidity, and raw capacitive soil moisture readings into a normalized score between 0 and 100.
+It combines air temperature, relative humidity, and calibrated soil moisture (percent) into a normalized score between 0 and 100.
 
 A higher score indicates that the measured environment is closer to the configured target ranges.
 
@@ -12,25 +12,39 @@ A higher score indicates that the measured environment is closer to the configur
 
 It does not measure plant nutrition, photosynthesis, light exposure, pests, diseases, or plant growth.
 
-Canonical configuration: [`config/environmental_score.v1.json`](../config/environmental_score.v1.json) (`score_version`: `conditions-v1`). Live scoring runs in FastAPI ([`api/services/environmental_score.py`](../api/services/environmental_score.py)). Historical scoring runs in dbt ([`warehouse/models/marts/fct_environmental_score_hourly.sql`](../warehouse/models/marts/fct_environmental_score_hourly.sql)).
+Canonical configuration: [`config/environmental_score.v1.json`](../config/environmental_score.v1.json) (`score_version`: `conditions-v2`; the filename predates the version bump). Live scoring runs in FastAPI ([`api/services/environmental_score.py`](../api/services/environmental_score.py)). Historical scoring runs in dbt ([`warehouse/models/marts/fct_environmental_score_hourly.sql`](../warehouse/models/marts/fct_environmental_score_hourly.sql)).
 
 ## Input measurements
 
-| Measurement | Target interval | Weight | Penalty reaches zero |
-|---|---|---:|---|
-| Air temperature | 20–26°C | 0.40 | At or below 12°C, or at or above 34°C |
-| Relative humidity | 50–70% | 0.25 | At or below 25%, or at or above 95% |
-| Soil moisture (raw units) | 450–800 | 0.35 | At or below 200, or at or above 1100 |
+| Measurement | Unit | Target interval | Weight | Penalty reaches zero |
+|---|---|---|---:|---|
+| Air temperature | °C | 20–26 | 0.40 | At or below 12, or at or above 34 |
+| Relative humidity | % | 85–97 | 0.20 | At or below 50, or at or above 100 |
+| Soil moisture (calibrated) | % | 40–80 | 0.40 | At or below 0, or at or above 100 |
 
-Temperature and humidity targets are generalized warm-growing greenhouse defaults, not species-specific requirements.
+Temperature targets are a generalized warm-growing default. The humidity band (85–97 %) is high and has only 3 points of tolerance above it, so near-saturated air is penalized quickly. None of these targets are species-specific requirements.
 
-Soil thresholds are provisional engineering estimates based on observed sensor measurements, not calibrated volumetric water content.
-
-The soil sensor has recently reported values ranging from 24 to 1000, with an average around 600. Readings below 150 are treated as suspect under the initial data-quality rules (`valid_min`).
+Valid ranges (`valid_min` / `valid_max`) reject impossible readings: -10 to 60 °C, 0 to 100 % humidity, 0 to 100 % soil moisture. A reading outside its valid range makes the whole score unavailable rather than zero.
 
 Atmospheric pressure is available as a sensor measurement but excluded from the composite score because it is not sufficiently actionable as a standalone measure of plant suitability.
 
-The configured soil unit is `raw_capacitance`, matching the event schema and firmware.
+### Soil-moisture calibration
+
+The capacitive soil sensor's raw output (`raw_capacitance`, emitted unchanged in events and the S3 archive) is noisy and not a direct water-content measure. The score instead uses a calibrated percentage:
+
+> the share of the 10 most recent raw readings at or above **990**, as a percent (rounded to a whole percent)
+
+At 40 % or more the soil is labelled `wet-like`; below that, `dry-like`. The calibrated value is a **proxy for how consistently the sensor reads wet**, not volumetric water content.
+
+The same transform runs in three places and must stay in step:
+
+| Where | Implementation |
+|---|---|
+| Pi automation controller | `transform_moisture_readings` in [`gateway/automation.py`](../gateway/automation.py) over a rolling window of the last 10 telemetry readings |
+| Live API | `transform_moisture_readings` in [`api/services/moisture_reading_transform.py`](../api/services/moisture_reading_transform.py) (a copy of the same function) over the Redis list `greenhouse:history:*` (10 newest raw events per sensor); falls back to the single latest reading |
+| dbt | `calibrated_moisture` in [`int_sensor_readings`](../warehouse/models/intermediate/int_sensor_readings.sql), a 10-row window per gateway and sensor |
+
+Hourly and daily marts aggregate the calibrated value. The same value drives pump automation (irrigation when it stays below 40 %), so the score and the actuator react to the same signal.
 
 ## Component scoring
 
@@ -58,7 +72,7 @@ The score is bounded between 0 and 100.
 ## Composite formula
 
 \[
-S=0.40S_T+0.25S_H+0.35S_M
+S=0.40S_T+0.20S_H+0.40S_M
 \]
 
 Where:
@@ -73,13 +87,11 @@ Weights are design assumptions, not experimentally determined plant-response coe
 
 ## Soil-moisture limitations
 
-The capacitive soil sensor provides a raw relative measurement. The score does not interpret this as a percentage of soil water content.
+The calibration is an engineering heuristic fitted to this sensor and substrate, not a laboratory calibration. The 990 threshold, the 10-reading window, and the 40–80 % target should be revisited against known dry and saturated substrate conditions or if the sensor or soil changes.
 
-The initial target interval of 450–800 raw units is provisional and should be revisited following calibration against known dry and moist substrate conditions.
+A window of 10 readings at the 5 s sampling interval covers under a minute, so the calibrated value can jump between coarse steps (multiples of 10 %). The score therefore changes in steps as the window fills and clears. Early in an outage or restart, with fewer than 10 raw readings available, the percentage is computed from whatever readings exist.
 
-Readings below 150 are flagged as suspect by the initial quality rules. This threshold is a heuristic, not a manufacturer-defined failure boundary.
-
-Changes to calibration, weights, or scoring thresholds should produce a new score version so historical values remain interpretable.
+Changes to calibration, weights, or scoring thresholds should produce a new score version so historical values remain interpretable. Moving from `conditions-v1` (raw soil units, different weights and humidity band) to `conditions-v2` was such a change: any score recorded or exported under v1 is not comparable with v2. The dbt marts are rebuilt from raw events with the current seed, so warehouse history reflects the current version.
 
 ## Live calculations
 
@@ -93,7 +105,7 @@ The React frontend displays the score returned by the backend; it does not indep
 
 Historical scores are calculated using dbt models in Snowflake:
 
-- `fct_environmental_score_hourly` — scores hourly average temperature, humidity, and soil moisture before combining them into an hourly composite.
+- `fct_environmental_score_hourly` — scores hourly average temperature, humidity, and calibrated soil moisture before combining them into an hourly composite.
 - `fct_environmental_score_daily` — summarizes valid hourly scores (avg/min/max, scored hours).
 
 Rules are loaded from the `environmental_score_rules` seed, generated from the same JSON config by [`warehouse/scripts/generate_score_seed.py`](../warehouse/scripts/generate_score_seed.py).
@@ -116,7 +128,7 @@ Historical scores should only be compared directly when they use compatible scor
 
 ## Future improvements
 
-- Calibrate soil moisture against known substrate conditions.
+- Validate the soil-moisture calibration against known substrate conditions, or move to a volumetric calibration.
 - Introduce crop-specific and growth-stage-specific target profiles.
 - Evaluate vapor pressure deficit as an alternative atmospheric indicator.
 - Improve historical scoring using synchronized, finer-grained events.

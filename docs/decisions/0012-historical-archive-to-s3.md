@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Recorded:** 2026-11-01
+**Update (2026-11-23):** the consumer now also archives the automation topic and quarantines malformed messages instead of stopping; see [ADR 0015](0015-automation-events-as-a-second-stream.md). The consequences below describe the original behavior.
 
 ## Context
 
@@ -16,12 +17,12 @@ A second Kafka consumer, [`consumers/historical/consumer.py`](../../consumers/hi
 - Each line is the original event unchanged, plus `_kafka_topic`, `_kafka_partition`, and `_kafka_offset`.
 - The Kafka offset is committed synchronously only after `put_object` returns. Partition revocation flushes first; SIGTERM flushes pending batches within the 60 s `stop_grace_period`.
 - AWS credentials come from the EC2 instance profile; nothing is stored in the repository or `.env` beyond the bucket name and region.
-- A malformed message is not skipped: the consumer raises and stops at that offset.
+- A malformed message is not skipped: the consumer raises and stops at that offset. *(Superseded in part by ADR 0015: malformed messages are now quarantined to S3 and skipped.)*
 
 ## Consequences
 
 - Every event accepted by the gateway is retained in S3 as the long-term record, at negligible storage cost, with no new database to operate.
-- Hive-style date partitions and the Kafka lineage fields make the archive loadable into Snowflake (and usable from Athena or Spark). dbt staging deduplicates on `event_id`; the history API reads the resulting marts ([ADR 0013](0013-snowflake-history-api-with-jwt-key.md)), and the dashboard History tab charts that API.
+- Hive-style date partitions and the Kafka lineage fields make the archive loadable into Snowflake (and usable from Athena or Spark). dbt staging deduplicates on `event_id`; the history API reads the resulting marts ([ADR 0013](0013-snowflake-history-api-with-jwt-key.md)), and the dashboard Analytics page charts that API.
 - Delivery to S3 is at-least-once per batch: a crash between upload and commit re-uploads the batch, so duplicates across objects are possible and downstream loads deduplicate on `event_id`.
 - Data reaches S3 with up to five minutes of delay, which is acceptable for history and keeps the object count small (about 300 objects per day at the current rate).
 - Lag on the historical group is normally non-zero (up to one batch); monitoring should allow for that.

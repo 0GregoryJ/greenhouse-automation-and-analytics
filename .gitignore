@@ -10,3 +10,6 @@ firmware/esp32/config.py
 logs/
 **/logs/
 warehouse/target/
+
+# Local notes
+pending_issues.txt

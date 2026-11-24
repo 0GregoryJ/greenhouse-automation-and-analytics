@@ -9,9 +9,9 @@ Related documents: [Architecture](architecture.md) · [Operations](operations.md
 | Component | How it is deployed |
 | --- | --- |
 | Tests and dashboard lint/test/build | GitHub Actions on every push and pull request ([`ci-cd.yml`](../.github/workflows/ci-cd.yml)) |
-| Pi gateway services (ingest, producer) | GitHub Actions on push to `main`: pull, install requirements, restart, check `is-active` |
+| Pi gateway services (ingest, producer, automation) | GitHub Actions on push to `main`: pull, install requirements, restart all three, check `is-active` on ingest and producer |
 | Serving host (live consumer, historical consumer, API) | GitHub Actions on push to `main`: pull, rebuild and recreate the three containers, check `/health` |
-| Pi systemd units | [`install-pi-services.sh`](../infrastructure/scripts/install-pi-services.sh) (from `infrastructure/systemd/raspberry_pi/`), run by hand when a unit file changes |
+| Pi systemd units | [`install-pi-services.sh`](../infrastructure/scripts/install-pi-services.sh) (from `infrastructure/systemd/raspberry_pi/`), run by hand when a unit file changes. The script does not install `greenhouse-automation.service` yet; install that unit by hand ([below](#automation-controller)) |
 | Kafka host | By hand: [`kafka.service`](../infrastructure/systemd/kafka_EC2/kafka.service) and the properties file |
 | Redis service, Caddy, Mosquitto | By hand |
 | Dashboard | Git-based deployment by Netlify |
@@ -26,7 +26,7 @@ Related documents: [Architecture](architecture.md) · [Operations](operations.md
 | --- | --- | --- |
 | `python-tests` | Every push and pull request | Python 3.12, a `redis:7-alpine` service, `TEST_REDIS_URL=redis://localhost:6379/15`, then `python -m pytest tests/ -v` |
 | `dashboard` | Every push and pull request | Node 22 in `dashboard/`: `npm ci`, `npm run lint`, `npm run test`, `npm run build` |
-| `deploy-pi` | Push to `main`, after `python-tests` and `dashboard` pass | Deploys the gateway services to the Raspberry Pi |
+| `deploy-pi` | Push to `main`, after `python-tests` and `dashboard` pass | Deploys the gateway services (ingest, producer, automation) to the Raspberry Pi |
 | `deploy-serving-ec2` | Push to `main`, after `python-tests` and `dashboard` pass | Deploys the live consumer, historical consumer, and API to the serving host |
 
 Both deploy jobs use the GitHub environment `production` and a concurrency group (`greenhouse-pi-deployment`, `greenhouse-serving-deployment`) with `cancel-in-progress: false`, so a second deploy for the same host queues behind the first. The two jobs run in parallel with each other.
@@ -39,8 +39,8 @@ Each deploy job joins the tailnet as an ephemeral node tagged `tag:ci` (`tailsca
 
 1. `git pull --ff-only origin main`
 2. `.venv/bin/python -m pip install -r requirements/gateway.txt`
-3. `sudo -n systemctl restart` for `greenhouse-ingest.service`, then for `greenhouse-kafka-producer.service`
-4. `sudo -n systemctl is-active --quiet` on both services; the job fails if either is not active
+3. `sudo -n systemctl restart` for `greenhouse-ingest.service`, `greenhouse-kafka-producer.service`, then `greenhouse-automation.service`
+4. `sudo -n systemctl is-active --quiet` on ingest and the producer; the job fails if either is not active. The automation service is restarted but its state is not checked by the job, so confirm it yourself after a deploy (`systemctl status greenhouse-automation`)
 
 The cleanup and health timers run `gateway/cleanup.py` and `gateway/health.py` from the working tree, so they pick up new code on their next run without a restart.
 
@@ -71,7 +71,7 @@ The workflow expects the following on the targets:
 | Target | Expectation |
 | --- | --- |
 | Tailnet | The ACLs allow `tag:ci` to reach SSH on the Pi and the serving host |
-| Pi | User `greenhousepi`, the repository at the path above with `.venv`, and passwordless sudo for `systemctl restart` and `systemctl is-active` on the two services |
+| Pi | User `greenhousepi`, the repository at the path above with `.venv`, and passwordless sudo for `systemctl restart` on the three services and `systemctl is-active` on ingest and the producer. The automation unit must already be installed, or the restart fails the job |
 | Serving host | The repository at `~/greenhouse-iot-streaming-pipeline` with its `.env` (including `S3_BUCKET` and Snowflake settings), the Snowflake PEM at `SNOWFLAKE_KEY_HOST_PATH`, a deploy user that can run `docker compose` without `sudo`, and an instance profile that allows `s3:PutObject` on the bucket |
 | Both | A clone on `main` that can fast-forward from `origin` |
 
@@ -97,10 +97,10 @@ docker stop greenhouse-test-redis
 | Directory | Covers |
 | --- | --- |
 | `tests/schemas/` | v1 and v2 JSON Schema accept and reject cases |
-| `tests/gateway/` | `on_message` persistence, schema validation in ingest, cleanup, health thresholds |
-| `tests/consumers/` | `parse_event`, the Redis timestamp guard, Redis failure propagation, offset commit after the Redis write |
-| `tests/api/` | `/health`, `/api/v1/sensors/latest` (live Redis), `/api/v1/history/series` (Snowflake call mocked), environmental score unit tests, invalid `period` validation |
-| `dashboard/` (`npm run test`) | History/score summary helpers, null-score gaps, URL builders, °F / Pacific formatting |
+| `tests/gateway/` | `on_message` persistence and schema validation in ingest, cleanup, health thresholds, the automation controller (pump gating on fresh low readings, attempt budget across restarts, durable event outbox, emergency OFF, uncertain commands), and the dual-outbox Kafka producer |
+| `tests/consumers/` | Live consumer: `parse_event`, the Redis timestamp guard, Redis failure propagation, offset commit after the Redis write. Historical consumer: both topics, separate S3 prefixes, upload-before-commit, quarantine |
+| `tests/api/` | `/health`, `/api/v1/sensors/latest` (live Redis, calibrated soil moisture), history routes including automations (Snowflake call mocked), environmental score unit tests, invalid parameter validation |
+| `dashboard/` (`npm run test`) | History/score summary helpers, null-score gaps, automation cycle and display helpers, URL builders, °F / Pacific formatting |
 
 ## Where things run
 
@@ -108,7 +108,8 @@ docker stop greenhouse-test-redis
 | --- | --- | --- | --- |
 | Firmware | ESP32 Feather V2 | `mpremote` copy; MicroPython runs `main.py` at boot | [`firmware/esp32/`](../firmware/esp32/) |
 | Mosquitto | Raspberry Pi Zero 2 W | systemd (`mosquitto`) | [`infrastructure/mosquitto/greenhouse.conf`](../infrastructure/mosquitto/greenhouse.conf) |
-| Ingest, producer, cleanup, health | Raspberry Pi | systemd | [`gateway/`](../gateway/), [`infrastructure/systemd/raspberry_pi/`](../infrastructure/systemd/raspberry_pi/) |
+| Ingest, producer, automation controller, cleanup, health | Raspberry Pi | systemd | [`gateway/`](../gateway/), [`infrastructure/systemd/raspberry_pi/`](../infrastructure/systemd/raspberry_pi/) |
+| Fan and pump relays | Shelly Gen2 plugs on the greenhouse LAN | Configured on the devices (MQTT to the Pi's Mosquitto) | n/a |
 | Kafka | EC2 #1 (`t3.small`) | systemd (`kafka`) | [`infrastructure/kafka/greenhouse.properties.example`](../infrastructure/kafka/greenhouse.properties.example), [`infrastructure/systemd/kafka_EC2/kafka.service`](../infrastructure/systemd/kafka_EC2/kafka.service) |
 | Live consumer, historical consumer, Redis, API | EC2 #2 (`t4g.small`) | Docker Compose | [`compose.yaml`](../compose.yaml), [`api/`](../api/) |
 | S3 bucket (historical archive) | AWS | Console or CLI; name in `.env` | n/a |
@@ -125,9 +126,10 @@ No secret values are committed. `.env` and `firmware/esp32/config.py` are git-ig
 
 | Location | Used by | Contents |
 | --- | --- | --- |
-| `.env` on the Pi (from [`.env.example`](../.env.example)) | `ingest.py`, `kafka_producer.py` | `MQTT_USERNAME`, `MQTT_PASSWORD`, `KAFKA_BOOTSTRAP_SERVERS`, and optional `MQTT_PORT`, `MQTT_TOPIC`, `KAFKA_TOPIC`, `KAFKA_BATCH_SIZE`, `KAFKA_RETRY_SECONDS`, `KAFKA_DELIVERY_TIMEOUT_MS` |
-| `.env` on the serving host | `compose.yaml` | `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_KEY_HOST_PATH`, and `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` (required); Snowflake account settings (`SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA`); `KAFKA_TOPIC` (default `greenhouse.sensor-readings`), `LIVE_KAFKA_CONSUMER_GROUP` (`greenhouse-live-dev`), `HISTORICAL_KAFKA_CONSUMER_GROUP` (`greenhouse-historical`), `HISTORICAL_BATCH_SIZE` (240), `HISTORICAL_FLUSH_SECONDS` (300), `S3_PREFIX` (`raw/sensor_events`), `AWS_REGION` (`us-east-2`), `CORS_ORIGINS` (default `http://localhost:5173`; include the dashboard origin in production) |
-| `.env` on a Mac | `simulate.py` | `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_TOPIC` |
+| `.env` on the Pi (from [`.env.example`](../.env.example)) | `ingest.py`, `kafka_producer.py` | `MQTT_USERNAME`, `MQTT_PASSWORD`, `KAFKA_BOOTSTRAP_SERVERS`, and optional `MQTT_PORT`, `MQTT_SENSOR_TOPIC`, `MQTT_AUTOMATION_TOPIC`, `KAFKA_TOPIC`, `KAFKA_AUTOMATION_TOPIC`, `KAFKA_BATCH_SIZE`, `KAFKA_RETRY_SECONDS`, `KAFKA_DELIVERY_TIMEOUT_MS` |
+| `.env` on the Pi (automation) | `automation.py` | `SHELLY_FAN_ID` and `SHELLY_PUMP_ID` (required: the MQTT topic prefixes the Shelly plugs are configured with; the process exits without them), `MQTT_HOST` (default `localhost`), `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_SENSOR_TOPIC`, `MQTT_AUTOMATION_TOPIC`. Thresholds and limits are constants at the top of the script |
+| `.env` on the serving host | `compose.yaml` | `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_KEY_HOST_PATH`, and `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` (required); Snowflake account settings (`SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA`); `KAFKA_TOPIC` (default `greenhouse.sensor-readings`), `KAFKA_AUTOMATION_TOPIC` (default `greenhouse.automation.events.v1`; forwarded to the live consumer only), `LIVE_KAFKA_CONSUMER_GROUP` (`greenhouse-live-dev`), `HISTORICAL_KAFKA_CONSUMER_GROUP` (`greenhouse-historical`), `HISTORICAL_BATCH_SIZE` (240), `HISTORICAL_FLUSH_SECONDS` (300), `S3_PREFIX` (`raw/sensor_events`), `AWS_REGION` (`us-east-2`), `CORS_ORIGINS` (default `http://localhost:5173`; include the dashboard origin in production) |
+| `.env` on a Mac | `simulate.py` | `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_TOPIC` (the simulator still reads `MQTT_TOPIC`; the gateway reads `MQTT_SENSOR_TOPIC`, so set both to the same value if you override it) |
 | `/etc/mosquitto/passwd` on the Pi | Mosquitto | Password hashes, created with `mosquitto_passwd` |
 | `firmware/esp32/config.py` (from `config.example.py`) | ESP32 | Wi-Fi and MQTT credentials, Pi LAN address, `GATEWAY_ID`, sensor IDs, sample interval |
 | `/home/ubuntu/kafka/config/greenhouse.properties` on EC2 #1 | Kafka | Copy of the example with `<TAILSCALE_IP>` replaced |
@@ -136,7 +138,8 @@ No secret values are committed. `.env` and `firmware/esp32/config.py` are git-ig
 
 Notes:
 
-- `ingest.py` runs beside Mosquitto and always connects to `localhost`. It reads `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_PORT` (default 1883), and `MQTT_TOPIC` (default `greenhouse/telemetry`); a blank value uses the default. `MQTT_HOST` is used by the simulator only.
+- `ingest.py` runs beside Mosquitto and always connects to `localhost`. It reads `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_PORT` (default 1883), `MQTT_SENSOR_TOPIC` (default `greenhouse/telemetry`), and `MQTT_AUTOMATION_TOPIC` (default `greenhouse/automation/events`); a blank value uses the default. `MQTT_HOST` is used by the simulator and the automation controller (default `localhost`) only.
+- The historical consumer's automation topic (`KAFKA_AUTOMATION_TOPIC`), `S3_AUTOMATION_PREFIX` (default `raw/automation_events`), and `S3_QUARANTINE_PREFIX` (default `raw/quarantine`) are read by the container but not forwarded by `compose.yaml`, so they run with those defaults. Add them to the service's `environment` block to override them.
 - `.env.example` is grouped by host and pre-fills the application defaults (topics, consumer groups, batch sizes, flush interval, S3 prefix, region, CORS origin, Snowflake placeholders). Credentials, `MQTT_HOST`, `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_KEY_HOST_PATH`, and `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` need real values on the hosts that use them. A blank value counts as set, so delete a line rather than leaving it empty (`KAFKA_BATCH_SIZE=` fails integer parsing).
 - Compose mounts `SNOWFLAKE_KEY_HOST_PATH` read-only into the API container at `/run/secrets/snowflake_api_key.pem` and sets `SNOWFLAKE_PRIVATE_KEY_PATH` to that path. The PEM must exist on the host before `docker compose up` and be readable by the container user (`appuser`). Prefer `chmod 644` on a dedicated key file, or ownership that Docker can read.
 - `.env` is read when a process starts. After editing it, restart the service (`systemctl restart …`) or recreate containers (`docker compose up -d`).
@@ -163,9 +166,11 @@ sudo mosquitto_passwd -c /etc/mosquitto/passwd <mqtt-user>   # -c creates the fi
 sudo systemctl restart mosquitto
 ```
 
-Start ingest once to create `gateway/data/sensor_events.db` and the table, apply the index migration (below), then install the unit files.
+Start ingest once to create `gateway/data/sensor_events.db` and its tables (`sensor_events`, `automation_events`), apply the index migration (below), then install the unit files.
 
-For CI deploys, also grant the deploy user passwordless sudo for the restart and `is-active` commands on `greenhouse-ingest.service` and `greenhouse-kafka-producer.service`.
+For CI deploys, also grant the deploy user passwordless sudo for `systemctl restart` on `greenhouse-ingest.service`, `greenhouse-kafka-producer.service`, and `greenhouse-automation.service`, and for `systemctl is-active` on the first two.
+
+`numpy` (in `requirements/gateway.txt`) must be installed in the Pi's `.venv` for the automation controller's moisture transform.
 
 ### Installing systemd units
 
@@ -173,7 +178,7 @@ For CI deploys, also grant the deploy user passwordless sudo for the restart and
 sudo bash infrastructure/scripts/install-pi-services.sh
 ```
 
-The script requires root and the `greenhousepi` user, runs `systemd-analyze verify` on the six units in `infrastructure/systemd/raspberry_pi/`, installs them to `/etc/systemd/system/`, and runs `daemon-reload`. It does not enable or restart anything. Then:
+The script requires root and the `greenhousepi` user, runs `systemd-analyze verify` on the six units it lists (ingest, producer, cleanup and health services and timers) from `infrastructure/systemd/raspberry_pi/`, installs them to `/etc/systemd/system/`, and runs `daemon-reload`. It does not enable or restart anything. Then:
 
 ```bash
 sudo systemctl enable --now greenhouse-cleanup.timer
@@ -183,6 +188,23 @@ sudo systemctl enable --now greenhouse-kafka-producer.service
 ```
 
 To compare an installed unit with the repository copy first, use `systemctl cat greenhouse-ingest.service`.
+
+### Automation controller
+
+[`greenhouse-automation.service`](../infrastructure/systemd/raspberry_pi/greenhouse-automation.service) runs `gateway/automation.py` as `greenhousepi` (`Restart=always`, `RestartSec=5`, requires `mosquitto.service`). The install script does not include it, so install it separately, after setting `SHELLY_FAN_ID` and `SHELLY_PUMP_ID` in `.env`:
+
+```bash
+sudo install -m 0644 infrastructure/systemd/raspberry_pi/greenhouse-automation.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now greenhouse-automation.service
+```
+
+Before enabling pump automation on a new installation:
+
+- Configure both Shelly plugs to publish and accept MQTT RPC on the Pi's Mosquitto, with the topic prefixes matching `SHELLY_FAN_ID` and `SHELLY_PUMP_ID`.
+- Set the pump plug's **power-restore state to OFF** and a **device-side auto-off** limit. The controller cannot protect against an offline plug, broken Wi-Fi, or a Pi without power.
+- Review the thresholds at the top of `gateway/automation.py` (fan on/off temperature, `PUMP_MOISTURE_THRESHOLD`, `PUMP_RUN_SECONDS`, `PUMP_COOLDOWN`, `PUMP_MAX_CYCLES`, `PUMP_AUTO_ENABLED`). They are constants, so changing one is a code change and a restart. Setting `PUMP_AUTO_ENABLED = False` disables irrigation but leaves the fan and event stream running.
+- The controller keeps `gateway/data/automation_state.db` (pump-attempt ledger and event outbox). Do not delete it casually: removing it clears the pump cooldown and daily budget.
 
 ### Database migration
 
@@ -197,7 +219,7 @@ A freshly created database gets the indexes when the migration is applied.
 
 ### Updating
 
-A merge to `main` updates ingest and the producer through the `deploy-pi` job. The manual equivalent, for hotfixes or unit changes:
+A merge to `main` updates ingest, the producer, and the automation controller through the `deploy-pi` job. The manual equivalent, for hotfixes or unit changes:
 
 ```bash
 cd ~/greenhouse-iot-streaming-pipeline
@@ -209,6 +231,7 @@ git pull --ff-only origin main
 # Restart only what changed
 sudo systemctl restart greenhouse-ingest              # ingest.py or schemas/ changed
 sudo systemctl restart greenhouse-kafka-producer      # kafka_producer.py or .env changed
+sudo systemctl restart greenhouse-automation          # automation.py or .env changed
 
 # Only if infrastructure/systemd/raspberry_pi/ changed
 sudo bash infrastructure/scripts/install-pi-services.sh
@@ -216,7 +239,8 @@ sudo bash infrastructure/scripts/install-pi-services.sh
 bash infrastructure/scripts/verify-deployment.sh pi
 ```
 
-- Cleanup and health run as one-shot services from timers, so new code is picked up on the next run. Unit file changes need the install script.
+- Cleanup and health run as one-shot services from timers, so new code is picked up on the next run. Unit file changes need the install script (and a manual `install` for the automation unit).
+- Restarting the automation controller clears its in-memory moisture window, so no pump run can start until 10 fresh readings and 3 consecutive low calibrated readings arrive. The cooldown and daily budget are kept.
 - Restarting ingest briefly stops consumption; Mosquitto queues for the persistent session. The producer unit allows `TimeoutStopSec=90` so in-flight deliveries can finish. See [Operations](operations.md#producer-backlog).
 - Mosquitto configuration changes: `sudo cp infrastructure/mosquitto/greenhouse.conf /etc/mosquitto/conf.d/greenhouse.conf && sudo systemctl restart mosquitto`. The ESP32 and ingest disconnect and reconnect.
 
@@ -227,7 +251,7 @@ The simplest rollback is to revert the bad commit on `main`: the pipeline runs t
 ```bash
 git log --oneline -5
 git checkout <previous-commit>      # detached HEAD
-sudo systemctl restart greenhouse-ingest greenhouse-kafka-producer
+sudo systemctl restart greenhouse-ingest greenhouse-kafka-producer greenhouse-automation
 ```
 
 Run `git checkout main` afterwards so the next deploy can fast-forward. The SQLite database is not rolled back: rows written under the newer code stay, and the migration is undone with `DROP INDEX` on both indexes. A gateway older than a schema version that devices emit rejects those events.
@@ -255,11 +279,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now kafka
 ```
 
-Topic: `greenhouse.sensor-readings`. `verify-deployment.sh kafka` checks that it exists. To create it explicitly:
+Topics: `greenhouse.sensor-readings` (checked by `verify-deployment.sh kafka`) and `greenhouse.automation.events.v1` (not checked by the script). The broker creates a topic on first use unless auto-creation is disabled; to create them explicitly:
 
 ```bash
 ~/kafka/bin/kafka-topics.sh --bootstrap-server "$KAFKA_BOOTSTRAP_SERVERS" \
   --create --topic greenhouse.sensor-readings --partitions 1 --replication-factor 1
+~/kafka/bin/kafka-topics.sh --bootstrap-server "$KAFKA_BOOTSTRAP_SERVERS" \
+  --create --topic greenhouse.automation.events.v1 --partitions 1 --replication-factor 1
 ```
 
 ### Updating
@@ -285,7 +311,7 @@ Docker Compose runs `redis` (`redis:7-alpine`, AOF persistence, volume `redis_da
 
 ### Initial setup
 
-Requirements: Docker with Compose, Tailscale (the consumers reach Kafka over it), Caddy, a DNS name for the API, ports 80 and 443 open publicly, an S3 bucket, Snowflake account access for the API user, the RSA private key on disk, and an IAM instance profile on the instance that allows `s3:PutObject` on `arn:aws:s3:::<bucket>/raw/sensor_events/*`. The historical consumer obtains AWS credentials from the instance metadata service inside its container. With IMDSv2 this needs the instance's metadata hop limit set to 2 (`aws ec2 modify-instance-metadata-options --instance-id <id> --http-put-response-hop-limit 2`), because Docker's bridge network adds a network hop. For CI deploys, the deploy user must be able to run `docker compose` without `sudo` (for example by membership in the `docker` group).
+Requirements: Docker with Compose, Tailscale (the consumers reach Kafka over it), Caddy, a DNS name for the API, ports 80 and 443 open publicly, an S3 bucket, Snowflake account access for the API user, the RSA private key on disk, and an IAM instance profile on the instance that allows `s3:PutObject` on `arn:aws:s3:::<bucket>/raw/sensor_events/*`, `raw/automation_events/*`, and `raw/quarantine/*`. The historical consumer obtains AWS credentials from the instance metadata service inside its container. With IMDSv2 this needs the instance's metadata hop limit set to 2 (`aws ec2 modify-instance-metadata-options --instance-id <id> --http-put-response-hop-limit 2`), because Docker's bridge network adds a network hop. For CI deploys, the deploy user must be able to run `docker compose` without `sudo` (for example by membership in the `docker` group).
 
 ```bash
 git clone https://github.com/0GregoryJ/greenhouse-iot-streaming-pipeline.git
@@ -300,7 +326,7 @@ sudo docker compose up -d --build
 
 ### dbt warehouse
 
-The dbt project lives in [`warehouse/`](../warehouse/) (`profile: warehouse`, package `greenhouse_analytics`). It expects a Snowflake source `GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS` and builds staging, intermediate, sensor marts, and environmental-score marts. Regenerate the scoring seed from the shared JSON config before building. Run from a machine that has Snowflake credentials in a dbt profile (not from the API container):
+The dbt project lives in [`warehouse/`](../warehouse/) (`profile: warehouse`, package `greenhouse_analytics`). It expects the Snowflake sources `GREENHOUSE_ANALYTICS.RAW.SENSOR_EVENTS` and `RAW.AUTOMATION_EVENTS` and builds staging, intermediate, sensor marts, environmental-score marts, and automation marts. Regenerate the scoring seed from the shared JSON config before building. Run from a machine that has Snowflake credentials in a dbt profile (not from the API container):
 
 ```bash
 pip install -r requirements/dbt.txt
@@ -358,13 +384,13 @@ The React/Vite app in [`dashboard/`](../dashboard/) is deployed from Git by Netl
 
 The API origin is resolved in [`dashboard/src/api/config.js`](../dashboard/src/api/config.js) from `VITE_API_URL` or `VITE_API_BASE_URL`, defaulting to `https://api.gregoryjoshua.com`. Set the env var in Netlify (or a local `.env`) to point at another API. The API lists the dashboard origin in `CORS_ORIGINS`, and `http://localhost:5173` (the default) allows local development against the production API.
 
-The Live tab polls `/api/v1/sensors/latest` and `/api/v1/environment/score/current`. The History tab charts environmental-score history or `/api/v1/history/series` (Snowflake marts). Gateways and sensors for pickers come from the live endpoint, so warehouse-only devices do not appear until a metadata endpoint exists.
+The Home page polls `/api/v1/sensors/latest` (3 s), `/api/v1/environment/score/current`, and `/api/v1/automation/events/recent` (5 s). The Analytics page charts environmental-score history, `/api/v1/history/series`, or `/api/v1/history/automations` (Snowflake). Control and the AI analyst are placeholders. Gateways and sensors for pickers come from the live endpoint, so warehouse-only devices do not appear until a metadata endpoint exists.
 
 ```bash
 cd dashboard
 npm ci
 npm run lint      # oxlint
-npm run test      # history summary / timeline helpers
+npm run test      # score, history, and automation helpers (node --test)
 npm run build     # vite build, output in dashboard/dist
 npm run dev       # local dev server (Vite, port 5173 by default)
 ```
@@ -409,6 +435,8 @@ pip install -r requirements/simulator.txt
 python sensor_simulator/simulate.py      # Ctrl+C to stop
 ```
 
+The automation controller subscribes to the same topic and accepts `air_temperature` from **any** sensor, so simulated temperatures (a random walk between 10 and 40 °C) can switch the real fan. Stop `greenhouse-automation` or point the simulator at a different broker while it runs. Simulated soil moisture is ignored because the controller only accepts `soil-001`.
+
 Simulated events are labelled as fake by their IDs: `gateway_id` `sim-gateway-001` and `sensor_id`s `sim-soil-001` and `sim-bme280-001`. They travel through SQLite, Kafka, and Redis like real events but use their own Redis keys, so they never overwrite physical readings. While the simulator runs, the Live dashboard shows extra `sim-` cards next to the real ones, and those sensors also appear in History pickers. To remove them afterwards, delete the keys:
 
 ```bash
@@ -423,7 +451,8 @@ The IDs are the constants `SIM_GATEWAY_ID`, `SIM_SOIL_SENSOR_ID`, and `SIM_BME28
 | --- | --- | --- |
 | `mosquitto.service` | Pi | MQTT broker |
 | `greenhouse-ingest.service` | Pi | MQTT to SQLite |
-| `greenhouse-kafka-producer.service` | Pi | SQLite to Kafka |
+| `greenhouse-kafka-producer.service` | Pi | SQLite to Kafka (both streams) |
+| `greenhouse-automation.service` | Pi | Fan and pump controller; publishes automation events |
 | `greenhouse-cleanup.service`, `greenhouse-cleanup.timer` | Pi | Hourly retention cleanup |
 | `greenhouse-health.service`, `greenhouse-health.timer` | Pi | Health check every minute |
 | `tailscaled.service` | Pi, both EC2 hosts | Private network (the producer unit orders after it; `verify-deployment.sh kafka` checks it) |
@@ -436,7 +465,7 @@ The IDs are the constants `SIM_GATEWAY_ID`, `SIM_SOIL_SENSOR_ID`, and `SIM_BME28
 
 | Argument | Checks |
 | --- | --- |
-| `pi` | `mosquitto`, `greenhouse-ingest`, `greenhouse-kafka-producer` active; cleanup and health timers enabled and active; `gateway/health.py` result (a warning prints `WARN` and does not fail) |
+| `pi` | `mosquitto`, `greenhouse-ingest`, `greenhouse-kafka-producer` active (the automation service is not checked; use `systemctl status greenhouse-automation`); cleanup and health timers enabled and active; `gateway/health.py` result (a warning prints `WARN` and does not fail) |
 | `kafka` | `kafka` and `tailscaled` active; `~/kafka/bin/kafka-topics.sh` present; topic listed (needs `KAFKA_BOOTSTRAP_SERVERS`) |
 | `backend` | Compose config valid; `redis`, `live-consumer`, `api` containers running; `http://127.0.0.1:8000/health`; `https://api.gregoryjoshua.com/health` |
 
@@ -452,10 +481,12 @@ Because the Pi and serving deploy jobs run in parallel, a change that needs the 
 | --- | --- |
 | Firmware only, existing schema | Firmware |
 | New sensor with an existing measurement type and unit | Firmware (dashboard polish optional) |
-| New measurement type or unit (new schema version) | 1. Schema files, `ingest.py` `SCHEMAS`, tests, merge, CI green and deployed to the Pi. 2. Test with a synthetic event ([steps](adding-a-sensor.md#test-the-gateway-with-a-synthetic-event)). 3. Serving host and dashboard, if changed. 4. Firmware |
+| New measurement type or unit (new schema version) | 1. Schema files, `ingest.py` `SENSOR_SCHEMAS`, tests, merge, CI green and deployed to the Pi. 2. Test with a synthetic event ([steps](adding-a-sensor.md#test-the-gateway-with-a-synthetic-event)). 3. Serving host and dashboard, if changed. 4. Firmware |
 | New or removed field, changed key structure | As above, with consumer and API updated and verified **before** the firmware emits the new shape. Breaking changes use a new version and a transition period; see [Data contracts](data-contracts.md#compatibility-rules) |
 | SQLite outbox change | Manual migration on the Pi. Stop ingest and producer while altering the table |
-| Kafka topic or key change | Update consumers first; the topic has one partition and replication factor 1 |
+| Kafka topic or key change | Update consumers first; the topics have one partition and replication factor 1 |
+| New automation event field or version | Same order as a sensor schema change: schema and `ingest.py` first (Pi deploy), then consumers, dbt staging, and API, then the controller that emits it |
+| Change to soil-moisture calibration | Pi controller, API image, and dbt `int_sensor_readings` together; bump `score_version` and regenerate the seed if score rules change |
 
 Keep support for an old schema version until no device emits it and queued or outbox events have drained. Kafka retains old-version events for 168 h by default.
 

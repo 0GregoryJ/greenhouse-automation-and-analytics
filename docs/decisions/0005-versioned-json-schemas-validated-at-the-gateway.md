@@ -20,7 +20,7 @@ Events come from firmware that is updated by hand over USB and from a simulator,
 - Bad data stops at the first durable stage, and a single place defines what is valid.
 - v1 simulator events and v2 firmware events coexist during a transition.
 - A closed schema rejects anything unknown, so any new field or enum value needs a gateway deployment before a device emits it ([Data contracts: compatibility rules](../data-contracts.md#compatibility-rules)).
-- Adding a version is a code change (the `SCHEMAS` dictionary) and an ingest restart.
+- Adding a version is a code change (the `SENSOR_SCHEMAS` or `AUTOMATION_SCHEMAS` dictionary in `ingest.py`) and an ingest restart. Automation events ([ADR 0015](0015-automation-events-as-a-second-stream.md)) follow the same approach with their own schema set.
 - `format` keywords (`uuid`, `date-time`) are not checked at the gateway. The consumer checks timestamps itself, so format enforcement at the gateway is on the [roadmap](../../README.md#roadmap).
 - The downstream components ignore `schema_version`, which keeps them stable across versions but means retained events of older versions flow through unchanged.
 - Rejected payloads are not stored yet; storing them is on the roadmap.

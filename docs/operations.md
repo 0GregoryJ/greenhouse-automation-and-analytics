@@ -8,7 +8,7 @@ Related documents: [Architecture](architecture.md) · [Data contracts](data-cont
 
 | Host | Run commands from | Notes |
 | --- | --- | --- |
-| Raspberry Pi | `~/greenhouse-iot-streaming-pipeline` (units use `/home/greenhousepi/greenhouse-iot-streaming-pipeline`) | Python in `.venv/`. SQLite at `gateway/data/sensor_events.db` |
+| Raspberry Pi | `~/greenhouse-iot-streaming-pipeline` (units use `/home/greenhousepi/greenhouse-iot-streaming-pipeline`) | Python in `.venv/`. SQLite at `gateway/data/sensor_events.db` (ingest outbox) and `gateway/data/automation_state.db` (controller state) |
 | Kafka EC2 (#1) | Any directory | Kafka CLI tools at `~/kafka/bin/` |
 | Serving EC2 (#2) | The repository root (where `compose.yaml` and `.env` are) | Docker commands use `sudo` |
 | Mac | Repository root, `.venv` activated | ESP32 serial access via `mpremote` |
@@ -21,21 +21,24 @@ Placeholders in angle brackets, such as `<TAILSCALE_IP>`, are values from your e
 | --- | --- | --- |
 | ESP32 | `mpremote connect "$ESP32_PORT" repl` | `BME280 initialized`, `Soil sensor initialized`, then repeating `Published: <sensor> <type> <value> <unit>` lines |
 | Mosquitto | `systemctl status mosquitto` and [`mosquitto_sub`](#mqtt) | Active; events stream |
-| Ingest | `systemctl status greenhouse-ingest`, journal | Active; `Saved:` lines; no restarts |
+| Ingest | `systemctl status greenhouse-ingest`, journal | Active; `Saved sensor event:` lines; no restarts |
 | SQLite outbox | [Queries](#sqlite) | `latest_received` within seconds; `pending` near 0 |
-| Producer | `systemctl status greenhouse-kafka-producer`, journal | `Batch complete: … acknowledged=N failed=0` |
+| Producer | `systemctl status greenhouse-kafka-producer`, journal | `Batch complete: stream=sensor … acknowledged=N failed=0` (and `stream=automation` when actuator events are pending) |
+| Automation controller | `systemctl status greenhouse-automation`, journal | Active; `Connected to Mosquitto; reconciling devices`; periodic `Soil moisture: raw=… calibrated=…%` lines |
 | Gateway health | `.venv/bin/python gateway/health.py` | `"status": "healthy"`, exit code 0 |
 | Kafka | `kafka-get-offsets.sh` run twice | End offset increases |
-| Live consumer | `sudo docker compose logs --tail 20 live-consumer` | `Processed event=… updated=True` |
+| Live consumer | `sudo docker compose logs --tail 20 live-consumer` | `Processed sensor event=… updated=True`; `Processed automation event=…` after actuator activity |
 | Historical consumer | `sudo docker compose logs --tail 20 historical-consumer` | `Uploaded N events to s3://…` and `Committed partition=0 next_offset=…` at least every 5 minutes |
-| S3 archive | `aws s3 ls s3://$S3_BUCKET/raw/sensor_events/year=$(date -u +%Y)/month=$(date -u +%m)/day=$(date -u +%d)/ --recursive` | New objects appearing |
-| Redis | `redis-cli --scan` | One key per sensor/measurement |
+| S3 archive | `aws s3 ls s3://$S3_BUCKET/raw/sensor_events/year=$(date -u +%Y)/month=$(date -u +%m)/day=$(date -u +%d)/ --recursive` (and `raw/automation_events/…` after actuator activity) | New objects appearing. Anything under `raw/quarantine/` is a rejected message to inspect |
+| Redis | `redis-cli --scan` | One `latest` and one `history` key per sensor/measurement, plus `greenhouse:automation:recent` |
 | API (live) | `curl -s http://127.0.0.1:8000/health` | `{"status":"ok"}` (Redis only; does not check Snowflake) |
 | API (history) | `curl -s "http://127.0.0.1:8000/api/v1/history/series?sensor_id=bme280-001&measurement_type=air_temperature&period=7d"` | HTTP 200 with `points` (or `count: 0` if the mart has no rows yet) |
+| API (automation events) | `curl -s http://127.0.0.1:8000/api/v1/automation/events/recent` | HTTP 200 with up to 10 `events` (empty `events` is normal before any actuator activity) |
 | API (live score) | `curl -s "http://127.0.0.1:8000/api/v1/environment/score/current?gateway_id=pi-001"` | HTTP 200 with `score` or `score: null` + status |
 | API (score history) | `curl -s "http://127.0.0.1:8000/api/v1/environment/score/history?gateway_id=pi-001&period=7d"` | HTTP 200 with `points` (null scores are incomplete hours) |
+| API (automation history) | `curl -s "http://127.0.0.1:8000/api/v1/history/automations?gateway_id=pi-001&actuator=pump&period=7d"` | HTTP 200 with `points` and `cycles` |
 | Public API | `curl -s https://api.gregoryjoshua.com/health` | `{"status":"ok"}` |
-| Dashboard | Browser | "Live" status pill, readings under 30 s old |
+| Dashboard | Browser | Home shows the "Live" status pill, readings under 30 s old, and recent automation cycles |
 
 [`infrastructure/scripts/verify-deployment.sh`](../infrastructure/scripts/verify-deployment.sh) runs service, container, health-endpoint, and gateway-health checks per host (`pi`, `kafka`, `backend`). It is read-only and exits non-zero on failure. Data flow is checked with the [troubleshooting flow](#troubleshooting-flow). See [Deployment](deployment.md#verification).
 
@@ -45,6 +48,7 @@ Placeholders in angle brackets, such as `<TAILSCALE_IP>`, are values from your e
 | --- | --- | --- |
 | Ingest | `sudo journalctl -u greenhouse-ingest -f` | Written with `print()`; the unit runs Python unbuffered (`-u`) |
 | Producer | `sudo journalctl -u greenhouse-kafka-producer -f` | Timestamped logging; the unit uses `python -u` |
+| Automation controller | `sudo journalctl -u greenhouse-automation -f` | Timestamped logging (`INFO`); every command, state change, and safety action is logged |
 | Cleanup | `sudo journalctl -u greenhouse-cleanup.service -n 20 --no-pager` | One run per hour |
 | Health | `sudo journalctl -u greenhouse-health.service --since "3 minutes ago" -o cat` | JSON output once per minute |
 | Mosquitto | `sudo journalctl -u mosquitto -n 50 --no-pager` | Or `/var/log/mosquitto/`, depending on the Pi's Mosquitto setup |
@@ -64,21 +68,29 @@ Messages worth knowing:
 | ESP32 | `BME280 read failed: …`, `Soil sensor read failed: …` | Read error; the sensor is marked unavailable and re-initialized within 30 s |
 | ESP32 | `NTP synchronization failed: <reason>` | Clock sync failed; publishing continues if the clock was already set, otherwise the network retry path runs |
 | ESP32 | `Telemetry error: <reason>` followed by `Network retry in 5 seconds` | Wi-Fi, NTP, or MQTT failure; reconnects without restarting the program |
-| Ingest | `Subscribed to greenhouse/telemetry` | Connected |
-| Ingest | `Saved: <type> = <value>` | Committed to SQLite and acknowledged |
+| Ingest | `Subscribed to <topic>` (once for the sensor topic, once for the automation topic) | Connected |
+| Ingest | `Saved sensor event: <event_id>` / `Saved automation event: <event_id>` | Committed to SQLite and acknowledged |
 | Ingest | `Duplicate ignored: <event_id>` | Redelivery or retry, already stored |
-| Ingest | `Invalid event: <error>` | Rejected, acknowledged, dropped |
+| Ingest | `Invalid sensor event: <error>` / `Invalid automation event: <error>` | Rejected, acknowledged, dropped |
+| Ingest | `Unexpected MQTT topic: <topic>` | A message arrived on a subscribed filter that is neither topic; ignored |
 | Ingest | `Connection failed: <reason>` | MQTT credentials or broker problem |
 | Ingest | `SQLite persistence failed` (traceback) | Process exits; systemd restarts it; message is redelivered |
-| Producer | `Batch complete: fetched=… queued=… acknowledged=… failed=… enqueue_interrupted=…` | Per batch. Logged only when there are pending rows |
-| Producer | `Kafka delivery failed event_id=…: <error>` | Row stays pending |
+| Producer | `Batch complete: stream=… topic=… fetched=… queued=… acknowledged=… failed=… enqueue_interrupted=…` | Per batch and stream. Logged only when there are pending rows |
+| Producer | `Kafka delivery failed topic=… event_id=…: <error>` | Row stays pending |
 | Producer | `Incomplete batch; retrying in 5.0 seconds` | Retry after a failed or partial batch |
 | Producer | `Producer queue full` | Local librdkafka queue is full; batch ends early |
-| Consumer | `Processed event=… key=… updated=True/False` | `False` means Redis already held a newer timestamp |
-| Consumer | `Skipping malformed event at partition=… offset=…: <error>` | Event skipped; offset committed |
-| Historical | `Uploaded N events to s3://<bucket>/<key>` | Batch written; the key encodes date, topic, partition, and offset range |
-| Historical | `Committed partition=N next_offset=M` | Offsets up to M-1 are durable in S3 |
-| Historical | Traceback ending in `ValueError: Missing required field` or `JSONDecodeError` | A malformed event stopped the consumer; it will restart and hit the same event (see [Historical consumer failures](#historical-consumer-failures)) |
+| Consumer | `Processed sensor event=… key=… updated=True/False` | `False` means Redis already held a newer timestamp (the history list is not updated either) |
+| Consumer | `Processed automation event=… actuator=… type=… inserted=True/False` | `False` means the `event_id` was already in the recent list |
+| Consumer | `Skipping malformed event topic=… partition=… offset=…: <error>` | Event skipped; offset committed |
+| Historical | `Uploaded N <topic> events to s3://<bucket>/<key>` | Batch written; the key encodes prefix, date, topic, partition, and offset range |
+| Historical | `Committed topic=… partition=N next_offset=M` | Offsets up to M-1 are durable in S3 |
+| Historical | `Quarantined invalid event: topic=… partition=… offset=… key=…` | A malformed message was saved under `raw/quarantine/` and skipped (see [Historical consumer failures](#historical-consumer-failures)) |
+| Automation | `Soil moisture: raw=… calibrated=…% state=… low_count=N` | One per accepted moisture reading once the 10-reading window is full |
+| Automation | `pump command_issued …`, `pump state_changed …` | Actuator events as they are recorded (`<actuator> <event_type> {details}`) |
+| Automation | `Implausible moisture reading …: watering inhibited` / `Moisture lacks fresh source timestamp; watering inhibited` | A bad or stale reading reset the moisture window; irrigation is blocked until 10 good readings and 3 low calibrated readings accumulate |
+| Automation | `Pump ON not queued; conservative budget reserved` | The ON command could not be published. The attempt still counts against the cooldown |
+| Automation | `RPC timeout: <actuator> <kind>` | A Shelly did not answer within 10 s. Check the plug's Wi-Fi and MQTT connection |
+| Automation | `Event PUBACK timed out; will retry …` / `Broker rejected event …` | Event outbox publication problem; rows stay in `event_outbox` and are retried |
 | Historical | `botocore` `NoCredentialsError` or `AccessDenied` | Instance profile missing, IMDS hop limit too low, or bucket policy; see [Deployment](deployment.md#initial-setup-1) |
 | API | `Historical analytics query failed` (traceback in API logs) | Snowflake connect/query failed; see [Historical API and Snowflake](#historical-api-and-snowflake) |
 
@@ -99,7 +111,14 @@ mosquitto_sub -h localhost -p 1883 -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
   -t greenhouse/telemetry -C 10
 ```
 
-Count connected clients (expect at least the ESP32 and ingest, plus this command):
+Watch actuator events from the automation controller (and the Shelly RPC traffic if you subscribe to `#`):
+
+```bash
+mosquitto_sub -h localhost -p 1883 -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
+  -t greenhouse/automation/events -v
+```
+
+Count connected clients (expect at least the ESP32, ingest, the automation controller, and both Shelly plugs, plus this command):
 
 ```bash
 mosquitto_sub -h localhost -p 1883 -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
@@ -151,7 +170,15 @@ sqlite3 -readonly -header -column "$DB" \
    FROM sensor_events WHERE kafka_published_at IS NULL GROUP BY 1;"
 ```
 
-At the 5 s interval with four measurements, expect about 48 rows per minute. The database path is derived from the script location, so query the repository that the services run from. Pending rows are the only copy of an event until Kafka acknowledges it.
+Automation events live in the same database file. Their table is `automation_events(event_id, event_json, timestamp_utc, received_at, actuator, event_type, command_id, cycle_id, kafka_published_at)`:
+
+```bash
+sqlite3 -readonly -header -column "$DB" \
+  "SELECT timestamp_utc, actuator, event_type, cycle_id, kafka_published_at IS NOT NULL AS published
+   FROM automation_events ORDER BY timestamp_utc DESC LIMIT 12;"
+```
+
+At the 5 s interval with four measurements, expect about 48 sensor rows per minute. The database path is derived from the script location, so query the repository that the services run from. Pending rows are the only copy of an event until Kafka acknowledges it.
 
 ## Kafka
 
@@ -159,7 +186,7 @@ Run on the Kafka EC2 host. Set the bootstrap address (a Tailscale address) first
 
 ```bash
 export KAFKA_BOOTSTRAP_SERVERS=<TAILSCALE_IP>:9092
-TOPIC=greenhouse.sensor-readings
+TOPIC=greenhouse.sensor-readings        # or greenhouse.automation.events.v1
 
 # Does the topic exist? Partitions, replication
 ~/kafka/bin/kafka-topics.sh --bootstrap-server "$KAFKA_BOOTSTRAP_SERVERS" --describe --topic "$TOPIC"
@@ -191,7 +218,7 @@ Consumer lag. The default groups are `greenhouse-live-dev` (live) and `greenhous
   --describe --group greenhouse-historical
 ```
 
-The historical group's lag is expected to sit anywhere up to one batch (240 events, or 5 minutes of traffic) because it commits per upload, not per event.
+Both consumer groups subscribe to both topics, so each group shows lag per topic. The historical group's lag is expected to sit anywhere up to one batch (240 events, or 5 minutes of traffic) because it commits per upload, not per event.
 
 Broker health: `sudo systemctl status kafka`, `df -h /home/ubuntu/kafka-data`, and `tailscale status`. The producer's own view is in its journal (`Batch complete: … acknowledged=…`).
 
@@ -224,11 +251,18 @@ from datetime import datetime, timezone
 now = datetime.now(timezone.utc)
 for r in json.load(sys.stdin)["readings"]:
     ts = datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
-    print(r["sensor_id"], r["measurement_type"], r["value"], r["unit"], f"{(now - ts).total_seconds():.0f}s old")
+    print(r["sensor_id"], r["measurement_type"], r["raw_value"], r.get("calibrated_pct", ""), r["unit"], f"{(now - ts).total_seconds():.0f}s old")
 '
 ```
 
-Each Redis hash holds `value`, `unit`, `timestamp`, `timestamp_ms`, `event_id`, `sensor_id`, `gateway_id`, `measurement_type`. `/health` returns 503 when Redis is unreachable, so it tests Redis, not data freshness or Snowflake.
+Each `greenhouse:latest:*` hash holds `value`, `unit`, `timestamp`, `timestamp_ms`, `event_id`, `sensor_id`, `gateway_id`, `measurement_type`. The API returns `value` as `raw_value`, and for soil moisture adds `calibrated_pct` and `state` from `greenhouse:history:{gateway}:{sensor}:soil_moisture` (the 10 newest events). Automation events are in the list `greenhouse:automation:recent`:
+
+```bash
+sudo docker compose exec redis redis-cli LLEN greenhouse:history:pi-001:soil-001:soil_moisture   # at most 10
+sudo docker compose exec redis redis-cli LRANGE greenhouse:automation:recent 0 2
+```
+
+`/health` returns 503 when Redis is unreachable, so it tests Redis, not data freshness or Snowflake.
 
 History series (Snowflake marts; does not use Redis):
 
@@ -237,13 +271,20 @@ curl -s "http://127.0.0.1:8000/api/v1/history/series?sensor_id=bme280-001&measur
   | python3 -m json.tool
 ```
 
-`period` must be one of `24h`, `7d`, or `30d`. The response includes `resolution` (`hour` or `day`), `unit`, `count`, and `points[]` with `timestamp`, `avg`, `min`, `max`, and `count`. The dashboard History tab uses this endpoint for sensor series; Live keeps polling Redis independently.
+`period` must be one of `24h`, `7d`, or `30d`. The response includes `resolution` (`hour` or `day`), `unit`, `count`, and `points[]` with `timestamp`, `avg`, `min`, `max`, and `count`. The dashboard Analytics page uses this endpoint for sensor series; Home keeps polling Redis independently.
 
 Live environmental score (Redis + in-process rules):
 
 ```bash
 curl -s "http://127.0.0.1:8000/api/v1/environment/score/current?gateway_id=pi-001" \
   | python3 -m json.tool
+```
+
+Automation events and history:
+
+```bash
+curl -s http://127.0.0.1:8000/api/v1/automation/events/recent | python3 -m json.tool
+curl -s "http://127.0.0.1:8000/api/v1/history/automations?gateway_id=pi-001&actuator=pump&period=7d" | python3 -m json.tool
 ```
 
 Historical environmental score (Snowflake score marts):
@@ -276,15 +317,43 @@ sudo docker compose logs --tail 100 api
 | Permission denied reading the PEM | Key not readable by `appuser` in the container. Relax host permissions (for example `chmod 644`) or adjust ownership |
 | JWT / authentication errors | Wrong passphrase, account locator, user, or public key not registered for the Snowflake user |
 | SQL / object does not exist | Marts missing or `SNOWFLAKE_SCHEMA` does not match the dbt target schema. Run `dbt run` in [`warehouse/`](../warehouse/) |
-| HTTP 422 on history | Invalid `period` (not `24h`/`7d`/`30d`) or empty query params |
+| HTTP 422 on history | Invalid `period` (not `24h`/`7d`/`30d`), invalid `actuator` (not `pump`/`fan`), or empty query params |
 | Empty `points` with 200 | Query succeeded; no rows in the selected window for that sensor/measurement |
-| Dashboard History shows an error banner | Same causes as API 503/422 above, or CORS. Live tab may still be healthy |
-| Sensor missing from History pickers | Discovery uses live Redis readings. Offline / warehouse-only sensors do not appear until a history metadata endpoint exists |
-| Live score always `incomplete` / missing soil | Confirm Redis unit is `raw_capacitance` and matches `config/environmental_score.v1.json`; rebuild API image so `config/` is present |
+| Dashboard Analytics shows an error banner | Same causes as API 503/422 above, or CORS. Home may still be healthy |
+| Sensor missing from Analytics pickers | Discovery uses live Redis readings. Offline / warehouse-only sensors do not appear until a history metadata endpoint exists |
+| Live score always `incomplete` / missing soil | The live scorer only accepts soil moisture stored with unit `raw_capacitance` and calibrates it itself. Confirm the Redis hash unit, that `greenhouse:history:*` has entries, and that the API image contains `config/` |
+| Automation history empty or 503 | `FCT_ACTUATOR_CYCLES` or `INT_SENSOR_READINGS` missing or not readable by the API role (see the intermediate-schema grants in [Snowflake setup](snowflake-setup.md#5-api-reader-role-and-user)), `RAW.AUTOMATION_EVENTS` not loaded, or no completed ON→OFF cycles in the window |
 | Score history empty while sensor history has rows | Score marts not built, seed unit mismatch, or gateway_id differs; run `dbt build` and check `FCT_ENVIRONMENTAL_SCORE_*` |
 | Dashboard score card unavailable, readings OK | Score endpoint 503 or incomplete; Live readings are independent |
 
 Live endpoints keep working when Snowflake is down. History and score-history are on-demand and are not part of `/health`.
+
+## Automation controller
+
+The controller is `greenhouse-automation.service` on the Pi. It needs Mosquitto and the two Shelly plugs; it does not need Kafka or the internet.
+
+```bash
+systemctl status greenhouse-automation --no-pager
+sudo journalctl -u greenhouse-automation -n 100 --no-pager
+sqlite3 -readonly -header -column gateway/data/automation_state.db \
+  "SELECT datetime(attempted_at, 'unixepoch') AS attempted, run_seconds FROM pump_attempts ORDER BY attempted_at DESC LIMIT 10;
+   SELECT COUNT(*) AS unsent_events FROM event_outbox;"
+```
+
+| Observation | Cause and action |
+| --- | --- |
+| Service fails at start with `KeyError: 'SHELLY_FAN_ID'` | Missing `SHELLY_FAN_ID` or `SHELLY_PUMP_ID` in `.env` |
+| `Mosquitto refused connection` | `MQTT_USERNAME` / `MQTT_PASSWORD` wrong for the controller's client id `pi-greenhouse-controller` |
+| `RPC timeout: <actuator> status` repeating | The plug is offline or not publishing on its MQTT prefix. Check the plug's Wi-Fi and MQTT settings and that the prefix equals `SHELLY_*_ID`. The controller will not command a plug whose state it cannot observe |
+| `command_failed` with `rpc_timeout_outcome_unknown` | The command may or may not have executed. The next status poll shows the real state; for the pump an unexpected ON triggers an emergency OFF |
+| Pump never runs although soil is dry | Check, in order: the log shows `Soil moisture: … low_count=` reaching 3 (window of 10 fresh readings from sensor `soil-001` required); `calibrated` is below 40; the pump plug is observed OFF; the cooldown (112 min) and the 8-per-24-h budget are not exhausted (`pump_attempts` above); `PUMP_AUTO_ENABLED` is `True` |
+| Pump ran, then stayed off for hours | Expected: the cooldown is 112 minutes and the controller needs a new window of readings after each run |
+| `emergency` OFF commands in the log (`unexpected_pump_on`, `pump_runtime_exceeded`) | The pump turned on outside an active cycle (for example a manual switch press) or ran longer than 6 s plus grace. Investigate the plug configuration; confirm its device-side auto-off |
+| Fan flaps or runs on simulated data | The controller accepts `air_temperature` from any sensor. Stop the simulator ([Deployment](deployment.md#simulator)) |
+| `unsent_events` grows | Mosquitto is not acknowledging the controller's publishes, or ingest is down (events sit in `event_outbox` and are retried every 8 s). Check Mosquitto and ingest |
+| Dashboard shows no automations | Events must pass the full path: `automation_events` rows on the Pi, then the `stream=automation` producer batches, then `Processed automation event=` in the live consumer. Work through [troubleshooting stages 2 to 5](#troubleshooting-flow) using the automation tables and topic |
+
+Restarting the controller is safe at any time. It forgets its moisture window (so it needs 10 new readings and 3 low calibrated readings before another run), but the cooldown and daily budget are persisted.
 
 ## Gateway health monitoring
 
@@ -315,8 +384,9 @@ The check reads the Pi's outbox. A stale-ingestion warning covers both the ESP32
 | --- | --- | --- |
 | SQLite, acknowledged rows | 24 h after `kafka_published_at` | `greenhouse-cleanup.timer` (hourly, `Persistent=true`) runs `gateway/cleanup.py --retention-hours 24 --batch-size 1000` |
 | SQLite, pending rows | Never deleted by age | Cleanup only touches rows with `kafka_published_at` set |
+| SQLite, `automation_events` and `automation_state.db` | Not cleaned | `cleanup.py` and `health.py` only handle `sensor_events`. Actuator volume is small; prune by hand if needed. `automation_state.db` holds the pump cooldown and daily budget, so do not delete it |
 | Kafka | 168 h by the template's `log.retention.hours` | Broker setting; topic-level overrides: see the Kafka section |
-| Redis | No expiry | Latest value per key; delete stale keys manually |
+| Redis | No expiry | Latest value and last 10 readings per key, last 10 automation events; delete stale keys manually |
 
 ```bash
 systemctl list-timers 'greenhouse-*' --no-pager       # next/last run
@@ -386,10 +456,10 @@ sudo journalctl -u greenhouse-ingest -n 100 --no-pager
 | --- | --- |
 | Service inactive or failed | It `Requires=mosquitto.service`. Start Mosquitto, then ingest. Read the journal for the first error |
 | `Connection failed: …` | Wrong `MQTT_USERNAME`/`MQTT_PASSWORD` in `.env` |
-| `Invalid event: …`, no `Saved:` | Validation failure, see [below](#schema-validation-failures) |
+| `Invalid sensor event: …` or `Invalid automation event: …`, no `Saved …` | Validation failure, see [below](#schema-validation-failures) |
 | Restarts climbing, `SQLite persistence failed` | Permissions on `gateway/data/`, full disk, or a corrupted database. Check `df -h` and file ownership |
 | Rapid restarts with a Python traceback | Read the first traceback in the journal; the message that triggered it was not acknowledged |
-| `Saved:` lines present but your query is empty | You queried a different repository clone or database path |
+| `Saved … event:` lines present but your query is empty | You queried a different repository clone or database path |
 | Inactive for a while, now recovered | Mosquitto queued messages for the persistent session; rows appear after the restart |
 
 ### 3. SQLite has rows but Kafka is empty
@@ -408,7 +478,7 @@ sudo journalctl -u greenhouse-kafka-producer -n 100 --no-pager
 | Port test fails | `timeout 5 bash -c '</dev/tcp/<TAILSCALE_IP>/9092' && echo open` from the Pi |
 | Connects but fails to produce | The broker's advertised address must be reachable from the Pi; check `advertised.listeners` on EC2 #1. Also confirm the topic exists (verify script lists it) |
 | No log lines at all, pending is 0 | The producer logs only when rows exist. Check Kafka offsets instead |
-| Pending is 0 but the consumer sees nothing | `KAFKA_TOPIC` differs between producer and consumer |
+| Pending is 0 but the consumer sees nothing | `KAFKA_TOPIC` (or `KAFKA_AUTOMATION_TOPIC`) differs between producer and consumer |
 
 Confirm on the Kafka host with `kafka-get-offsets.sh` as shown above. Offsets that grow and `kafka_published_at` that fills in mean this stage is healthy.
 
@@ -455,10 +525,10 @@ The dashboard keeps the last known values when a fetch fails, so check the statu
 
 ### Schema validation failures
 
-Symptoms: MQTT shows events, SQLite stops growing, ingest logs `Invalid event: …`.
+Symptoms: MQTT shows events, SQLite stops growing, ingest logs `Invalid sensor event: …` or `Invalid automation event: …`.
 
 ```bash
-sudo journalctl -u greenhouse-ingest --since "1 hour ago" --no-pager | grep "Invalid event"
+sudo journalctl -u greenhouse-ingest --since "1 hour ago" --no-pager | grep "Invalid .* event"
 ```
 
 | Error text | Meaning |
@@ -521,12 +591,13 @@ sudo docker compose logs --tail 100 historical-consumer
 | --- | --- |
 | No `Uploaded` line for more than 5 minutes while Kafka offsets rise | Consumer cannot reach Kafka or S3. Check Tailscale and the log for `botocore` errors |
 | `NoCredentialsError`, or the container restarts at its first upload | No AWS credentials in the container. Attach an instance profile and set the IMDSv2 hop limit to 2 ([Deployment](deployment.md#initial-setup-1)) |
-| `AccessDenied` on `PutObject` | The instance role lacks `s3:PutObject` on `raw/sensor_events/*`, or the bucket policy denies it |
-| Restart loop with `ValueError: Missing required field` or `JSONDecodeError` | A message in the topic is not a valid event. The consumer does not skip it, so it stops at that offset on every restart. Inspect the offset with `kafka-console-consumer.sh --partition 0 --offset <n> --max-messages 1`, then either fix the consumer to quarantine it or advance the group's offset past it with `kafka-consumer-groups.sh --reset-offsets --to-offset <n+1> --group greenhouse-historical --topic greenhouse.sensor-readings --execute` (while the consumer is stopped) |
+| `AccessDenied` on `PutObject` | The instance role lacks `s3:PutObject` on `raw/sensor_events/*`, `raw/automation_events/*`, or `raw/quarantine/*`, or the bucket policy denies it. A missing quarantine permission is easy to miss until the first bad message |
+| `Quarantined invalid event` | A message failed validation and was stored under `raw/quarantine/<topic>/partition=N/offset-<n>.json`; the consumer continued. Inspect it: `aws s3 cp s3://$S3_BUCKET/raw/quarantine/<topic>/partition=0/offset-<n>.json - \| python3 -c 'import sys,json,base64; d=json.load(sys.stdin); print(d["error"]); print(base64.b64decode(d["raw_value_base64"]).decode())'` |
+| Restart loop even though bad messages are quarantined | The quarantine upload itself is failing (S3 permissions or connectivity), so the offset is never committed. Fix S3 access; the consumer retries the same message |
 | Duplicate events across objects | Expected after a restart between upload and commit. Deduplicate on `event_id` when loading downstream |
 | `docker compose stop` takes up to 60 s | The consumer flushes pending batches before exiting (`stop_grace_period`) |
 
-A full re-archive is possible by starting the consumer under a new `HISTORICAL_KAFKA_CONSUMER_GROUP`; it replays the retained 168 h into new objects.
+A full re-archive is possible by starting the consumer under a new `HISTORICAL_KAFKA_CONSUMER_GROUP`; it replays the retained 168 h of both topics into new objects.
 
 ### Stale dashboard readings
 

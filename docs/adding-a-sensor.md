@@ -16,11 +16,12 @@ Most of the pipeline is sensor-agnostic. A sensor that emits a measurement type 
 | `config.py` and [`config.example.py`](../firmware/esp32/config.example.py) | **Yes** | Always: add the new `sensor_id` (and any pins/addresses you choose to configure) |
 | [`firmware/esp32/main.py`](../firmware/esp32/main.py) | No | Unless the event shape changes. It calls `sensors.init_all()`, `sensors.retry_failed()`, and `sensors.read_all()` and sends whatever comes back |
 | `schemas/` | Only if `measurement_type` or `unit` is not in the current schema | See [Does the schema support it?](#does-the-schema-support-it) |
-| [`gateway/ingest.py`](../gateway/ingest.py) | Only for a **new schema version** | The `SCHEMAS` dict is hard-coded. Restart ingest after changing it |
+| [`gateway/ingest.py`](../gateway/ingest.py) | Only for a **new schema version** | The `SENSOR_SCHEMAS` dict is hard-coded. Restart ingest after changing it |
+| [`gateway/automation.py`](../gateway/automation.py) | Only if the sensor should drive an actuator | The controller reads `air_temperature` (from **any** sensor) and `soil_moisture` (only `MOISTURE_SENSOR_ID`, `soil-001`). A second temperature sensor would also feed the fan rule; a replacement soil sensor with a new `sensor_id` needs that constant changed |
 | SQLite outbox, Kafka producer, Kafka topic | No | Events are stored and forwarded as opaque JSON |
 | [Live consumer](../consumers/live/consumer.py) | No | It does not check measurement type or unit. It keys Redis by `gateway_id`/`sensor_id`/`measurement_type` |
 | Redis | No | New keys appear on first event. Keys never expire, so cleanup is manual |
-| [FastAPI](../api/main.py) (live) | No | It returns every `greenhouse:latest:*` hash. `value` must be numeric |
+| [FastAPI](../api/main.py) (live) | No | It returns every `greenhouse:latest:*` hash (as `raw_value`). The value must be numeric. Soil moisture is calibrated from its 10-reading history; other types are passed through |
 | FastAPI history / Snowflake marts | Usually no | New `measurement_type` values appear in history after events reach Snowflake and dbt rebuilds marts. No API code change for an existing type |
 | [Dashboard](../dashboard/) | Optional | New types get a generic label and unformatted value. Edit `METRICS` / `formatValue` for a proper label, order, or number format (Live and History share those helpers) |
 | Tests | When you change code that has tests or add logic | See [Tests](#tests) |
@@ -133,7 +134,7 @@ return {
 }
 ```
 
-`read_all()` turns those into `air_temperature`/`celsius`, `relative_humidity`/`percent`, and `atmospheric_pressure`/`hpa`, all with `config.BME280_SENSOR_ID`. The soil sensor yields one `soil_moisture`/`raw_capacitance` measurement under `config.SOIL_SENSOR_ID`. Soil moisture is **raw capacitance, not a calibrated percentage**. If you add calibration, emit a new `unit` or `measurement_type` rather than changing what `raw_capacitance` means ([Data contracts](data-contracts.md#compatibility-rules)).
+`read_all()` turns those into `air_temperature`/`celsius`, `relative_humidity`/`percent`, and `atmospheric_pressure`/`hpa`, all with `config.BME280_SENSOR_ID`. The soil sensor yields one `soil_moisture`/`raw_capacitance` measurement under `config.SOIL_SENSOR_ID`. The event carries **raw capacitance, not a calibrated percentage**. Calibration (percent of the last 10 readings at or above 990) is derived downstream by the controller, API, and dbt ([methodology](environmental-conditions-score.md#soil-moisture-calibration)); another calibration should likewise leave `raw_capacitance` untouched ([Data contracts](data-contracts.md#compatibility-rules)).
 
 ### Template for a new I²C sensor
 
@@ -246,7 +247,7 @@ Examples with the current schema:
 Follow [Data contracts](data-contracts.md#compatibility-rules); in short:
 
 1. Add `schemas/sensor_event.v3.schema.json` and its example (v1 and v2 stay unchanged).
-2. Register version 3 in `SCHEMAS` in `gateway/ingest.py`. This is application code, so it needs review and a Pi deployment.
+2. Register version 3 in `SENSOR_SCHEMAS` in `gateway/ingest.py`. This is application code, so it needs review and a Pi deployment.
 3. Update the schema check and tests ([Tests](#tests)).
 4. Deploy the gateway first. Bump `SCHEMA_VERSION` in `main.py` only after ingest accepts v3.
 5. Make a deliberate choice about units: a new unit means the dashboard's `formatValue` switch in [`dashboard/src/lib/format.js`](../dashboard/src/lib/format.js) needs a case to display it well.
@@ -261,12 +262,12 @@ Events travel as opaque JSON after the gateway, so verify the following.
 | --- | --- |
 | **SQLite** | Nothing. Stored as JSON text in `event_json`. Capacity: each added measurement at a 5 s interval adds 12 rows/minute (17 280/day); acknowledged rows are deleted after 24 h |
 | **Kafka** | Nothing. Same topic, key is `event_id`. No schema registry |
-| **Consumer** | Event has all seven fields it checks and `value` is numeric, or it is logged as malformed and skipped (the offset is committed, so the event is not retried) |
-| **Redis** | A key `greenhouse:latest:{gateway_id}:{sensor_id}:{measurement_type}` appears. Keys never expire |
-| **API (live)** | The reading appears in `GET /api/v1/sensors/latest` with a numeric `value`. A non-numeric stored value makes the whole endpoint return 503 |
+| **Consumers** | Live: event has all seven fields it checks and `value` is numeric, or it is logged as malformed and skipped (the offset is committed, so the event is not retried). Historical: required fields present, or the message is quarantined in S3 |
+| **Redis** | A key `greenhouse:latest:{gateway_id}:{sensor_id}:{measurement_type}` and a 10-entry `greenhouse:history:…` list appear. Keys never expire |
+| **API (live)** | The reading appears in `GET /api/v1/sensors/latest` with a numeric `raw_value`. A non-numeric stored value makes the whole endpoint return 503 |
 | **API (history)** | After warehouse load and `dbt run`, `GET /api/v1/history/series` returns points for that `sensor_id` and `measurement_type` |
-| **Dashboard (Live)** | The card appears at the next 3 s poll. Check how it renders (below) |
-| **Dashboard (History)** | After warehouse load and `dbt run`, the History tab can chart the series. The sensor must also appear in the live endpoint for the picker (live-based discovery) |
+| **Dashboard (Home)** | The card appears at the next 3 s poll. Check how it renders (below) |
+| **Dashboard (Analytics)** | After warehouse load and `dbt run`, the Sensor mode can chart the series. The sensor must also appear in the live endpoint for the picker (live-based discovery) |
 
 Dashboard behavior for new data ([`dashboard/src/lib/metrics.js`](../dashboard/src/lib/metrics.js), [`format.js`](../dashboard/src/lib/format.js)):
 
@@ -326,7 +327,7 @@ mosquitto_pub -h localhost -p 1883 -u "$MQTT_USERNAME" -P "$MQTT_PASSWORD" \
   -t greenhouse/telemetry -q 1 -m "$EVENT"
 ```
 
-Confirm `Saved:` in `journalctl -u greenhouse-ingest`, then follow the event hop by hop with [Operations](operations.md#2-mqtt-receives-but-sqlite-is-empty). Remove the test card on the serving host afterwards:
+Because the automation controller reads the same topic, a test `air_temperature` between 21 and 24 °C (as here) does not change fan state; values at or above 24 °C could switch the real fan. Confirm `Saved sensor event:` in `journalctl -u greenhouse-ingest`, then follow the event hop by hop with [Operations](operations.md#2-mqtt-receives-but-sqlite-is-empty). Remove the test card on the serving host afterwards:
 
 ```bash
 sudo docker compose exec redis redis-cli DEL greenhouse:latest:pi-001:test-001:air_temperature
@@ -357,10 +358,10 @@ Verify in order (details and commands in [Operations](operations.md#troubleshoot
 
 1. REPL shows `Published:` lines for the new `sensor_id`.
 2. `mosquitto_sub` on the Pi shows the events.
-3. `journalctl -u greenhouse-ingest` shows `Saved:` and no `Invalid event:`.
+3. `journalctl -u greenhouse-ingest` shows `Saved sensor event:` and no `Invalid sensor event:`.
 4. SQLite rows appear and `kafka_published_at` is set.
-5. The consumer logs `Processed event=…`, and Redis has the new key.
-6. `/api/v1/sensors/latest` and the dashboard Live tab show the reading. After warehouse refresh, History can chart the same `sensor_id` / `measurement_type`.
+5. The live consumer logs `Processed sensor event=…`, and Redis has the new key.
+6. `/api/v1/sensors/latest` and the dashboard Home page show the reading. After warehouse refresh, Analytics can chart the same `sensor_id` / `measurement_type`.
 
 ### Rollback
 
@@ -391,10 +392,11 @@ Firmware
 Contract
 [ ] measurement_type and unit in the current schema?
     [ ] Yes: no schema, gateway, consumer, or API change
-    [ ] No: new schema version, SCHEMAS entry in ingest.py, SCHEMA_VERSION bump,
+    [ ] No: new schema version, SENSOR_SCHEMAS entry in ingest.py, SCHEMA_VERSION bump,
         data-contracts.md updated
 Downstream
-[ ] Dashboard: label, order, or format added only if wanted (Live + History share helpers)
+[ ] Dashboard: label, order, or format added only if wanted (Home + Analytics share helpers)
+[ ] Automation: does the sensor feed (or conflict with) the fan or pump rules?
 [ ] Capacity (rows per day) acceptable
 Tests and deploy
 [ ] pytest tests/ passes; schema tests extended and validation script run if the schema changed

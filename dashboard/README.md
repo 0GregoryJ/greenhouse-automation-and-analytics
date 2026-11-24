@@ -4,29 +4,30 @@ React and Vite single-page app for greenhouse monitoring. It is the last stage o
 
 Live site: <https://greenhouse.gregoryjoshua.com>
 
-## Behavior
+## Pages
 
-Two tabs share the same design language:
+A collapsible sidebar (state kept in `localStorage`) switches between four pages. There is no router; `App.jsx` holds the current page.
 
-### Live
+| Page | Contents | Data |
+| --- | --- | --- |
+| **Home** | Status pill and last-update age; **Environmental Conditions Score** card (gateway picker when several exist); one card per sensor and measurement; **Recent automations** panel (latest fan and pump cycles, with a shortcut to automation analytics); AI analyst placeholder | `GET /api/v1/sensors/latest` every 3 s, `GET /api/v1/environment/score/current`, `GET /api/v1/automation/events/recent` every 5 s |
+| **Control** | Placeholder. Manual overrides are not wired up; the Pi's local automation runs independently | None |
+| **Analytics** | Three modes: **Conditions score**, **Sensor readings**, **Automations**. Periods `24h`, `7d`, `30d` (hourly or daily resolution from the API). AI analyst placeholder | `GET /api/v1/environment/score/history`, `/api/v1/history/series`, `/api/v1/history/automations` |
+| **About** | Short project description and a link to the repository | None |
 
-- Polls `GET /api/v1/sensors/latest` every 3 seconds (`useLiveReadings`).
-- Shows a prominent **Environmental Conditions Score** card from `GET /api/v1/environment/score/current` (gateway discovered from live readings). Null scores render as unavailable — never as zero. Score API failures do not hide sensor cards.
-- Renders one card per sensor and measurement type, labeled and ordered by the `METRICS` map in [`src/lib/metrics.js`](src/lib/metrics.js). Unknown measurement types fall back to a generic label.
-- Marks a reading stale when its event timestamp is more than 30 seconds old (`STALE_AFTER_MS` in [`src/lib/format.js`](src/lib/format.js)).
-- Displays temperatures in °F and chart/score timestamps in Pacific time (`America/Los_Angeles`).
-- Formats other values by unit (`percent`, `hpa`, `raw_capacitance`); a `percent` reading also shows a 0 to 100 bar.
+### Behavior notes
 
-### History
-
-- Mode toggle: **Conditions score** or **Sensor reading**.
-- Score mode calls `GET /api/v1/environment/score/history` (0–100 axis, gaps for null, daily min–max band on 30d, summaries weighted by `scored_hours` for daily data).
-- Sensor mode calls `GET /api/v1/history/series` with discovery from the live payload.
-- Periods: `24h`, `7d`, `30d` (hourly vs daily resolution from the API).
+- **Score.** The dashboard displays the score computed by the API; it never recomputes it. Null scores show as unavailable, never zero. Score failures do not hide sensor cards. Target bands shown beside each component are display-only constants in [`src/lib/scoreDisplay.js`](src/lib/scoreDisplay.js) and must match `config/environmental_score.v1.json` (`conditions-v2`).
+- **Soil moisture.** Cards show the calibrated percentage and a `Wet-like` / `Dry-like` state from `calibrated_pct` and `state`; the raw value is kept as `raw_value`. Other `percent` readings also get a 0 to 100 bar.
+- **Staleness.** A reading is stale when its event timestamp is more than 30 seconds old (`STALE_AFTER_MS` in [`src/lib/format.js`](src/lib/format.js)).
+- **Units and time.** Temperatures display in °F; chart and event times use Pacific time (`America/Los_Angeles`).
+- **Automations.** Home groups raw events into cycles (ON to OFF, by `cycle_id` where present) in [`src/lib/automationCycles.js`](src/lib/automationCycles.js). The Automations analytics mode draws the actuator's sensor series (calibrated soil moisture for the pump, air temperature for the fan) with cycle markers from the warehouse.
+- **Discovery.** Gateways and sensors for pickers come from the live endpoint, so warehouse-only devices do not appear until a metadata endpoint exists.
+- **Unknown measurement types** fall back to a generic label ([`src/lib/metrics.js`](src/lib/metrics.js)).
 
 ## Configuration
 
-API origin comes from [`src/api/config.js`](src/api/config.js):
+API origin comes from [`src/api/config.js`](src/api/config.js), which also defines every endpoint URL:
 
 - Build-time override: `VITE_API_URL` or `VITE_API_BASE_URL`.
 - Default: `https://api.gregoryjoshua.com`.
@@ -35,23 +36,30 @@ API origin comes from [`src/api/config.js`](src/api/config.js):
 
 ```text
 src/
-├── api/config.js
+├── api/config.js         API origin and endpoint URLs
+├── pages/                HomePage, ControlPage, AnalyticsPage, AboutPage
 ├── components/
-│   ├── live/          LiveView, ScoreCard, ReadingCard
-│   └── history/       HistoryView, score + sensor charts/summaries
-├── hooks/             useLiveReadings, useEnvironmentalScore, useScoreHistory, …
-├── lib/               metrics, format, historyStats, scoreStats (+ tests)
-├── services/          liveApi, historyApi, environmentApi
-└── App.jsx            Live | History tabs
+│   ├── layout/           Sidebar, NavIcons
+│   ├── live/             ScoreCard, ReadingCard
+│   ├── automation/       RecentAutomations
+│   ├── history/          HistoryView (score, sensor, automation modes), charts, summaries
+│   ├── ai/               AiAnalystPanel (placeholder)
+│   └── shared/           ComingSoonPanel
+├── hooks/                useLiveReadings, useEnvironmentalScore, useAutomationEvents,
+│                         useScoreHistory, useHistoricalSeries, useAutomationHistory
+├── lib/                  metrics, format, scoreDisplay, scoreStats, historyStats,
+│                         automationCycles, automationDisplay (+ node:test tests)
+├── services/             liveApi, environmentApi, automationApi, historyApi, automationHistoryApi
+└── App.jsx               Page state and sidebar
 ```
 
 ## Commands
 
 ```bash
 npm ci
-npm run dev
-npm run lint
-npm run test
+npm run dev       # Vite dev server on port 5173
+npm run lint      # oxlint
+npm run test      # node --test 'src/lib/*.test.js'
 npm run build
 npm run preview
 ```

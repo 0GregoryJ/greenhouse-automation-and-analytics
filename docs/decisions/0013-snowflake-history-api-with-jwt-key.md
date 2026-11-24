@@ -24,7 +24,7 @@ Snowflake access from the container must not embed long-lived passwords in the i
 - Live monitoring stays up when Snowflake is unreachable; history returns HTTP 503.
 - The PEM must exist on the host before `docker compose up` and be readable by the container user (`appuser`).
 - Schema drift between dbt marts and the repository SQL breaks history until both are updated together.
-- The React dashboard History tab consumes this endpoint (trends, weighted summaries, period insights). Sensor pickers still come from the live Redis view until a warehouse metadata endpoint exists.
+- The React dashboard Analytics page consumes this endpoint (trends, weighted summaries, period insights). Sensor pickers still come from the live Redis view until a warehouse metadata endpoint exists.
 - CI history tests mock the service layer and do not need Snowflake credentials.
 
 ## Related

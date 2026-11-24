@@ -2,7 +2,7 @@
 
 Infrastructure configurations, deployment scripts, and operational procedures for the **Greenhouse IoT Streaming Pipeline**.
 
-The project uses a Raspberry Pi Zero 2 W as an edge gateway, two AWS EC2 instances for event streaming and live data services, and Netlify for the public React dashboard.
+The project uses a Raspberry Pi Zero 2 W as an edge gateway and local automation controller (fan and pump on Shelly smart plugs), two AWS EC2 instances for event streaming and live data services, and Netlify for the public React dashboard.
 
 Infrastructure configuration is version-controlled to support reproducible deployments, consistent service management, and easier troubleshooting.
 
@@ -18,10 +18,11 @@ ESP32 Sensors / Python Simulator
               v
      Raspberry Pi Zero 2 W
      +----------------------+
-     | Mosquitto            |
+     | Mosquitto            |<--- MQTT ---> Shelly plugs (fan, pump)
      | MQTT Ingestion       |
      | SQLite Outbox        |
      | Kafka Producer       |
+     | Automation Controller|
      +----------------------+
               |
         Tailscale VPN
@@ -50,7 +51,7 @@ ESP32 Sensors / Python Simulator
               v
       Netlify React Dashboard
 
-(The historical consumer also writes to an S3 bucket.)
+(Sensor and automation events travel on separate Kafka topics. The historical consumer also writes both streams, plus quarantined messages, to an S3 bucket.)
 ```
 
 The Raspberry Pi provides durable local event buffering, Kafka decouples event production from consumption, and Redis maintains the latest sensor state for low-latency dashboard access.
@@ -69,6 +70,7 @@ infrastructure/
 │   ├── raspberry_pi/
 │   │   ├── greenhouse-ingest.service
 │   │   ├── greenhouse-kafka-producer.service
+│   │   ├── greenhouse-automation.service
 │   │   ├── greenhouse-cleanup.service
 │   │   ├── greenhouse-cleanup.timer
 │   │   ├── greenhouse-health.service
@@ -81,13 +83,13 @@ infrastructure/
 └── README.md
 ```
 
-Unit files are grouped by the host they run on. The Pi units in `systemd/raspberry_pi/` are installed by `scripts/install-pi-services.sh`; `systemd/kafka_EC2/kafka.service` runs on EC2 #1 and is installed by hand. Caddy's template is named `caddyfile` here and is deployed as `/etc/caddy/Caddyfile`.
+Unit files are grouped by the host they run on. The Pi units in `systemd/raspberry_pi/` are installed by `scripts/install-pi-services.sh`, except `greenhouse-automation.service`, which is installed by hand (see [Automation controller](../docs/deployment.md#automation-controller)); `systemd/kafka_EC2/kafka.service` runs on EC2 #1 and is installed by hand. Caddy's template is named `caddyfile` here and is deployed as `/etc/caddy/Caddyfile`.
 
 ## Deployment Environments
 
 | Host | Components | Management |
 |---|---|---|
-| Raspberry Pi Zero 2 W | Mosquitto, MQTT ingestion, SQLite, Kafka producer | systemd |
+| Raspberry Pi Zero 2 W | Mosquitto, MQTT ingestion, SQLite, Kafka producer, automation controller | systemd |
 | AWS EC2 #1 (`t3.small`) | Apache Kafka broker | systemd |
 | AWS EC2 #2 (`t4g.small`) | Live consumer, historical consumer, Redis, FastAPI | Docker Compose |
 | AWS S3 | Historical event archive | Bucket and IAM instance profile |
@@ -118,11 +120,14 @@ Password hashes are stored in `/etc/mosquitto/passwd` on the Pi and must not be 
 | Service | Responsibility |
 |---|---|
 | `greenhouse-ingest.service` | Validate incoming MQTT events and persist them to SQLite |
-| `greenhouse-kafka-producer.service` | Publish pending SQLite records to Kafka |
+| `greenhouse-kafka-producer.service` | Publish pending SQLite records (sensor and automation outboxes) to Kafka |
+| `greenhouse-automation.service` | Drive the fan and pump from sensor readings, enforce pump safety limits, publish actuator events |
 | `greenhouse-cleanup.timer` | Periodically delete acknowledged records past retention |
 | `greenhouse-health.timer` | Monitor ingestion freshness, delivery backlog, and disk usage |
 
-The SQLite outbox supports retrying failed Kafka deliveries without losing successfully persisted measurements.
+The SQLite outbox supports retrying failed Kafka deliveries without losing successfully persisted measurements or actuator events. The controller keeps its own state (pump cooldown ledger and event outbox) in `gateway/data/automation_state.db`.
+
+The controller's `.env` needs `SHELLY_FAN_ID` and `SHELLY_PUMP_ID`. Configure both plugs with power-restore OFF and a device-side auto-off; the controller cannot protect against an offline plug.
 
 Pending events are retained until Kafka acknowledges delivery. Delivery is at-least-once, so downstream consumers deduplicate on `event_id`.
 
@@ -145,6 +150,8 @@ sudo systemctl enable --now greenhouse-cleanup.timer
 sudo systemctl enable --now greenhouse-health.timer
 sudo systemctl enable --now greenhouse-ingest.service
 sudo systemctl enable --now greenhouse-kafka-producer.service
+# After installing the automation unit by hand (not covered by the script):
+sudo systemctl enable --now greenhouse-automation.service
 ```
 
 To compare an installed unit with the repository copy, use `systemctl cat greenhouse-ingest.service`.
@@ -154,6 +161,7 @@ Restart gateway applications when appropriate:
 ```bash
 sudo systemctl restart greenhouse-ingest
 sudo systemctl restart greenhouse-kafka-producer
+sudo systemctl restart greenhouse-automation
 ```
 
 ### Verify Gateway Deployment
@@ -167,6 +175,7 @@ View service logs:
 ```bash
 journalctl -u greenhouse-ingest -f
 journalctl -u greenhouse-kafka-producer -f
+journalctl -u greenhouse-automation -f
 ```
 
 ## 2. Apache Kafka — AWS EC2 #1
@@ -204,11 +213,14 @@ Kafka's data directory is intended to reside on the EC2 instance's persistent EB
 
 ### Topic
 
-The telemetry topic is:
+The topics are:
 
-`greenhouse.sensor-readings`
+| Topic | Carries |
+|---|---|
+| `greenhouse.sensor-readings` | Sensor telemetry |
+| `greenhouse.automation.events.v1` | Fan and pump actuator events |
 
-The topic uses a single partition and replication factor one.
+Both use a single partition and replication factor one.
 
 ### Service Management
 
@@ -245,10 +257,10 @@ The live backend consists of four Docker Compose services.
 
 | Service | Responsibility |
 |---|---|
-| `live-consumer` | Consume Kafka telemetry and update Redis |
-| `historical-consumer` | Consume Kafka telemetry in its own group and archive gzip JSON Lines batches to S3 |
-| `redis` | Store the latest measurement per sensor and measurement type |
-| `api` | Expose read-only FastAPI endpoints (live Redis + Snowflake history) |
+| `live-consumer` | Consume both Kafka topics; update Redis (latest and recent readings, recent automation events) |
+| `historical-consumer` | Consume both topics in its own group; archive gzip JSON Lines batches to S3 and quarantine malformed messages |
+| `redis` | Store the latest measurement and last 10 readings per sensor and type, and the 10 most recent automation events |
+| `api` | Expose read-only FastAPI endpoints (live Redis, automation events, Snowflake history) |
 
 Docker Compose configuration is maintained at the repository root:
 
@@ -274,7 +286,7 @@ sudo docker compose logs -f api
 
 ### S3 Access
 
-The historical consumer uses the EC2 instance profile for AWS credentials; no keys are stored in `.env`. The role needs `s3:PutObject` on the bucket's `raw/sensor_events/*` prefix, and the instance's IMDSv2 hop limit must be 2 so containers on Docker's bridge network can reach the metadata service.
+The historical consumer uses the EC2 instance profile for AWS credentials; no keys are stored in `.env`. The role needs `s3:PutObject` on the bucket's `raw/sensor_events/*`, `raw/automation_events/*`, and `raw/quarantine/*` prefixes, and the instance's IMDSv2 hop limit must be 2 so containers on Docker's bridge network can reach the metadata service.
 
 ### Snowflake Access
 
@@ -285,6 +297,7 @@ The API uses key-pair JWT auth. Compose mounts `SNOWFLAKE_KEY_HOST_PATH` into th
 ```bash
 curl --fail http://127.0.0.1:8000/health
 curl --fail "http://127.0.0.1:8000/api/v1/history/series?sensor_id=bme280-001&measurement_type=air_temperature&period=7d"
+curl --fail http://127.0.0.1:8000/api/v1/automation/events/recent
 ```
 
 Redis communicates with other services through the internal Docker network and is not publicly exposed.
@@ -342,7 +355,7 @@ The script:
 - Verifies the expected Raspberry Pi user exists.
 - Checks required unit files.
 - Validates systemd configuration.
-- Installs service and timer definitions.
+- Installs service and timer definitions (ingest, producer, cleanup, health; not the automation unit).
 - Reloads the systemd manager.
 
 It does not automatically restart existing applications.
@@ -392,9 +405,9 @@ Kafka currently uses plaintext communication within the private Tailscale networ
 
 ### SQLite Retention
 
-The gateway removes Kafka-acknowledged records older than 24 hours.
+The gateway removes Kafka-acknowledged sensor records older than 24 hours.
 
-Pending events are excluded from time-based cleanup.
+Pending events are excluded from time-based cleanup. The `automation_events` table and `automation_state.db` are not cleaned up automatically.
 
 ### Gateway Health Monitoring
 

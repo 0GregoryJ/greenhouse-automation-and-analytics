@@ -13,7 +13,7 @@ The React/Vite dashboard **Live** tab polls `GET /api/v1/sensors/latest` every 3
 
 The dashboard decides staleness itself: a reading is stale when its event timestamp is older than 30 seconds. When a fetch fails, it keeps the last known readings and shows an "Offline" status.
 
-Historical analytics use a separate read-only path: `GET /api/v1/history/series` against Snowflake marts ([ADR 0013](0013-snowflake-history-api-with-jwt-key.md)). The History tab still discovers selectable sensors from the live endpoint.
+Historical analytics use a separate read-only path: `GET /api/v1/history/series` against Snowflake marts ([ADR 0013](0013-snowflake-history-api-with-jwt-key.md)). The Analytics page still discovers selectable sensors from the live endpoint.
 
 ## Consequences
 

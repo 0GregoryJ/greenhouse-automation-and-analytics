@@ -19,6 +19,8 @@ Architecture Decision Records (ADRs) capture a significant architectural decisio
 | [0011](0011-dashboard-polls-a-read-only-api.md) | Dashboard polls a read-only API | Accepted |
 | [0012](0012-historical-archive-to-s3.md) | Historical archive as gzip JSON Lines batches in S3 | Accepted |
 | [0013](0013-snowflake-history-api-with-jwt-key.md) | Snowflake history API with JWT key-pair auth | Accepted |
+| [0014](0014-local-automation-controller-with-persistent-safety-ledger.md) | Local automation controller with a persistent safety ledger | Accepted |
+| [0015](0015-automation-events-as-a-second-stream.md) | Automation events as a second stream, with quarantine in the archive | Accepted |
 
 ## Format
 
