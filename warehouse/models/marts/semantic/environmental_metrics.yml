@@ -1,0 +1,272 @@
+version: 2
+
+# Environmental conditions: temperature, humidity and soil moisture.
+#
+# Source: fct_sensor_hourly (one row per UTC hour x gateway x sensor x
+# measurement type x unit). All timestamps are UTC; MetricFlow does not shift
+# time zones, so "day", "week" and "month" boundaries are UTC boundaries.
+#
+# Averages are READING-WEIGHTED. fct_sensor_hourly.avg_value is itself an
+# average, so averaging it directly would give every hour the same weight
+# regardless of how many readings it contains. Every average here is
+# sum(avg_value * reading_count) / sum(reading_count), which equals the average
+# over the underlying readings at any grain from hour upwards.
+#
+# Soil moisture is the CALIBRATED percent (share of the last 10 raw readings at
+# or above 990), never the raw capacitance.
+
+semantic_models:
+  - name: sensor_hourly
+    description: >
+      Hourly sensor statistics. Grain: one row per UTC hour, gateway, sensor,
+      measurement type and unit, built from valid, deduplicated readings in
+      int_sensor_readings. Soil moisture rows carry calibrated percent
+      (unit 'percent'); other types carry their native unit. Minimum time
+      grain is the hour: per-reading or sub-hour questions cannot be answered
+      here.
+    model: ref('fct_sensor_hourly')
+    defaults:
+      agg_time_dimension: measurement_hour_utc
+
+    entities:
+      - name: sensor_hour
+        type: primary
+        expr: >
+          TO_VARCHAR(measurement_hour_utc) || '|' || gateway_id || '|' ||
+          sensor_id || '|' || measurement_type || '|' || unit
+      - name: gateway
+        type: foreign
+        expr: gateway_id
+      - name: sensor
+        type: foreign
+        expr: sensor_id
+
+    dimensions:
+      - name: measurement_hour_utc
+        type: time
+        type_params:
+          time_granularity: hour
+        description: Start of the UTC hour containing the readings.
+      - name: measurement_type
+        type: categorical
+        description: >
+          Kind of measurement: air_temperature (celsius), relative_humidity
+          (percent), soil_moisture (calibrated percent) or atmospheric_pressure
+          (hpa). Always filter or group by this when a metric mixes types.
+      - name: unit
+        type: categorical
+        description: Unit of avg/min/max values for the row.
+      - name: gateway_id
+        type: categorical
+        description: Gateway (greenhouse) that produced the readings.
+      - name: sensor_id
+        type: categorical
+        description: Sensor that produced the readings.
+      - name: hour_of_day_utc
+        type: categorical
+        expr: HOUR(measurement_hour_utc)
+        description: >
+          UTC hour of day, 0-23. Use to ask what time of day conditions peak.
+          Greenhouse local time differs from UTC.
+      - name: day_of_week_utc
+        type: categorical
+        expr: DAYOFWEEKISO(measurement_hour_utc)
+        description: >
+          ISO UTC weekday of the reading, 1 (Monday) to 7 (Sunday). Use to
+          compare weekdays. MetricFlow's extract_dow date part is not
+          available in this version.
+
+    measures:
+      - name: reading_count
+        description: Number of valid readings aggregated into the row.
+        agg: sum
+        expr: reading_count
+      - name: value_times_reading_count
+        description: >
+          avg_value weighted by reading_count. Numerator of every weighted
+          average; not meaningful on its own.
+        agg: sum
+        expr: avg_value * reading_count
+      - name: min_value
+        description: Smallest reading in the row (calibrated percent for soil).
+        agg: min
+        expr: min_value
+      - name: max_value
+        description: Largest reading in the row (calibrated percent for soil).
+        agg: max
+        expr: max_value
+      - name: valid_range_reading_count
+        description: >
+          Readings inside the scoring rule's valid range for their type
+          (null for types without a rule).
+        agg: sum
+        expr: valid_range_reading_count
+      - name: in_target_range_reading_count
+        description: >
+          Readings inside the target interval of the scoring rules
+          (inclusive of both limits).
+        agg: sum
+        expr: in_target_range_reading_count
+      - name: below_target_min_reading_count
+        description: >
+          Readings strictly below the lower limit of the target interval.
+        agg: sum
+        expr: below_target_min_reading_count
+
+metrics:
+  # ---- Building blocks (generic; always combine with a measurement_type filter)
+  - name: sensor_reading_count
+    label: Sensor readings (all measurement types)
+    description: >
+      Number of valid, deduplicated sensor readings. Building block: it sums
+      across every measurement type, so group or filter by
+      sensor_hour__measurement_type to get a meaningful figure. Prefer
+      temperature_reading_count or soil_moisture_reading_count.
+    type: simple
+    type_params:
+      measure: reading_count
+    config:
+      meta:
+        role: building_block
+
+  - name: sensor_value_sum
+    label: Sum of reading values (building block)
+    description: >
+      Sum of individual reading values, reconstructed as avg_value x
+      reading_count. Building block for weighted averages; it mixes units
+      unless filtered to one measurement type. Do not report it directly.
+    type: simple
+    type_params:
+      measure: value_times_reading_count
+    config:
+      meta:
+        role: building_block
+
+  # ---- Temperature
+  - name: avg_temperature_c
+    label: Average air temperature (C)
+    description: >
+      Average air temperature in degrees Celsius over all valid readings in
+      the period, weighted by reading count (not an average of hourly
+      averages). Use for "what was the temperature", trends, and comparison
+      across days or hours of day. Data is bucketed in UTC; readings outside
+      the plausible range are not removed.
+    type: ratio
+    type_params:
+      numerator:
+        name: sensor_value_sum
+        filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+      denominator:
+        name: sensor_reading_count
+        filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+
+  - name: min_temperature_c
+    label: Minimum air temperature (C)
+    description: >
+      Lowest single air temperature reading in the period, in degrees
+      Celsius. Exact at any grain from hour upwards.
+    type: simple
+    type_params:
+      measure: min_value
+    filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+
+  - name: max_temperature_c
+    label: Maximum air temperature (C)
+    description: >
+      Highest single air temperature reading in the period, in degrees
+      Celsius. Use to find hottest days or the hottest hour of day.
+    type: simple
+    type_params:
+      measure: max_value
+    filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+
+  - name: temperature_range_c
+    label: Air temperature range (C)
+    description: >
+      Maximum minus minimum air temperature reading in the period, in degrees
+      Celsius. A simple measure of temperature variability or extremes; it is
+      driven by single readings, so one noisy reading widens it. Group by a
+      day or longer grain; at the hour grain it only describes that hour.
+    type: derived
+    type_params:
+      expr: max_temp - min_temp
+      metrics:
+        - name: max_temperature_c
+          alias: max_temp
+        - name: min_temperature_c
+          alias: min_temp
+
+  - name: temperature_reading_count
+    label: Temperature readings (count)
+    description: >
+      Number of valid air temperature readings. Use to judge how much data
+      supports a temperature average, or to find gaps in sensor coverage.
+    type: simple
+    type_params:
+      measure: reading_count
+    filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+
+  # ---- Humidity
+  - name: avg_humidity_pct
+    label: Average relative humidity (%)
+    description: >
+      Average relative humidity in percent (0-100) over all valid readings in
+      the period, weighted by reading count. Use for humidity levels and for
+      whether humidity is rising or falling across days.
+    type: ratio
+    type_params:
+      numerator:
+        name: sensor_value_sum
+        filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'relative_humidity'"
+      denominator:
+        name: sensor_reading_count
+        filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'relative_humidity'"
+
+  # ---- Soil moisture (calibrated percent)
+  - name: avg_soil_moisture_pct
+    label: Average calibrated soil moisture (%)
+    description: >
+      Average calibrated soil moisture in percent (0-100) over all valid
+      readings in the period, weighted by reading count. Calibrated moisture
+      is the share of the 10 most recent raw capacitive readings at or above
+      990, so it is a proxy for how consistently the sensor reads wet, not
+      volumetric water content. Use for moisture trends and variation by hour
+      of day.
+    type: ratio
+    type_params:
+      numerator:
+        name: sensor_value_sum
+        filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"
+      denominator:
+        name: sensor_reading_count
+        filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"
+
+  - name: min_soil_moisture_pct
+    label: Minimum calibrated soil moisture (%)
+    description: >
+      Lowest calibrated soil moisture reading in the period, in percent.
+      Calibrated values move in steps because they are a rolling share of 10
+      raw readings.
+    type: simple
+    type_params:
+      measure: min_value
+    filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"
+
+  - name: max_soil_moisture_pct
+    label: Maximum calibrated soil moisture (%)
+    description: >
+      Highest calibrated soil moisture reading in the period, in percent.
+    type: simple
+    type_params:
+      measure: max_value
+    filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"
+
+  - name: soil_moisture_reading_count
+    label: Soil moisture readings (count)
+    description: >
+      Number of valid soil moisture readings (each carries a calibrated
+      value). The first 9 readings per sensor use a partial 10-reading window.
+    type: simple
+    type_params:
+      measure: reading_count
+    filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"

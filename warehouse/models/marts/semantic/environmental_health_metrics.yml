@@ -1,0 +1,288 @@
+version: 2
+
+# Environmental health: the conditions-v2 suitability score and target-range
+# compliance.
+#
+# Scores come from fct_environmental_score_hourly (one row per UTC hour x
+# gateway x score_version). That is the only score semantic model: the daily
+# model is a plain average/min/max of the hourly rows, which MetricFlow
+# reproduces at day grain, so a second semantic model would duplicate facts.
+#
+# Target ranges and weights come from config/environmental_score.v1.json (the
+# seed environmental_score_rules). Do not restate them here; change the JSON.
+# The score is a rules-based indicator of alignment with configured targets,
+# NOT a measurement of plant health.
+
+semantic_models:
+  - name: environmental_score_hourly
+    description: >
+      Hourly environmental suitability score by gateway. Grain: one row per
+      UTC hour, gateway and score_version. Scores are computed from HOURLY
+      AVERAGE temperature, humidity and soil moisture, not from every raw
+      reading. environmental_score is NULL (never zero) when any of the three
+      components is missing or outside its valid range; component scores are
+      NULL when that component is unavailable.
+    model: ref('fct_environmental_score_hourly')
+    defaults:
+      agg_time_dimension: measurement_hour_utc
+
+    entities:
+      - name: score_hour
+        type: primary
+        expr: >
+          TO_VARCHAR(measurement_hour_utc) || '|' || gateway_id || '|' ||
+          score_version
+      - name: gateway
+        type: foreign
+        expr: gateway_id
+
+    dimensions:
+      - name: measurement_hour_utc
+        type: time
+        type_params:
+          time_granularity: hour
+        description: Start of the UTC hour that was scored.
+      - name: gateway_id
+        type: categorical
+        description: Gateway (greenhouse) that was scored.
+      - name: score_version
+        type: categorical
+        description: >
+          Scoring rule version (currently conditions-v2). Scores from
+          different versions are not comparable; filter to a single version
+          if more than one is ever present.
+      - name: status
+        type: categorical
+        description: >
+          'complete' when all three components were available and the
+          composite score exists; otherwise 'incomplete'.
+      - name: hour_of_day_utc
+        type: categorical
+        expr: HOUR(measurement_hour_utc)
+        description: UTC hour of day, 0-23.
+
+    measures:
+      - name: environmental_score_avg
+        description: >
+          Average of the composite score over hours where it exists. NULL
+          scores are skipped, not treated as zero.
+        agg: average
+        expr: environmental_score
+      - name: environmental_score_min
+        description: Lowest composite hourly score.
+        agg: min
+        expr: environmental_score
+      - name: temperature_score_avg
+        description: Average of the hourly temperature component score.
+        agg: average
+        expr: temperature_score
+      - name: humidity_score_avg
+        description: Average of the hourly humidity component score.
+        agg: average
+        expr: humidity_score
+      - name: soil_score_avg
+        description: Average of the hourly soil moisture component score.
+        agg: average
+        expr: soil_score
+      - name: scored_hours
+        description: Hours with a non-null composite score.
+        agg: count
+        expr: environmental_score
+      - name: score_hours_total
+        description: Hourly score rows, whether or not a composite exists.
+        agg: sum
+        expr: 1
+
+metrics:
+  # ---- Composite and component scores (0-100, higher = closer to targets)
+  - name: avg_environmental_score
+    label: Average environmental score (0-100)
+    description: >
+      Average of valid hourly composite environmental scores (0-100) in the
+      period; higher means conditions were closer to the configured target
+      ranges. Each scored hour has equal weight, and hours with an incomplete
+      set of components have no score and are excluded (see
+      environmental_score_coverage_pct). Indicator of target alignment, not
+      plant health. Equals fct_environmental_score_daily.avg_environmental_score
+      at day grain.
+    type: simple
+    type_params:
+      measure: environmental_score_avg
+
+  - name: min_environmental_score
+    label: Lowest hourly environmental score (0-100)
+    description: >
+      Lowest valid hourly composite environmental score (0-100) in the
+      period. Use to find the worst hour or day. Excludes unscored hours.
+    type: simple
+    type_params:
+      measure: environmental_score_min
+
+  - name: avg_temperature_score
+    label: Average temperature score (0-100)
+    description: >
+      Average hourly air temperature component score (0-100), where 100 means
+      the hourly average temperature was inside the target interval. Use to
+      see whether temperature is dragging the composite down. Component
+      scores can exist for hours where the composite does not.
+    type: simple
+    type_params:
+      measure: temperature_score_avg
+
+  - name: avg_humidity_score
+    label: Average humidity score (0-100)
+    description: >
+      Average hourly relative humidity component score (0-100), where 100
+      means the hourly average humidity was inside the target interval.
+    type: simple
+    type_params:
+      measure: humidity_score_avg
+
+  - name: avg_moisture_score
+    label: Average soil moisture score (0-100)
+    description: >
+      Average hourly calibrated soil moisture component score (0-100), where
+      100 means the hourly average calibrated moisture was inside the target
+      interval.
+    type: simple
+    type_params:
+      measure: soil_score_avg
+
+  # ---- Score coverage (how much of the period the scores describe)
+  - name: scored_hour_count
+    label: Scored hours (count)
+    description: >
+      Number of hours with a complete (non-null) composite environmental
+      score. Use with environmental_score_coverage_pct to judge how much of
+      the period the average score represents.
+    type: simple
+    type_params:
+      measure: scored_hours
+
+  - name: environmental_score_hour_count
+    label: Hours with score data (count)
+    description: >
+      Number of hourly score rows, including incomplete hours with no
+      composite score. Denominator for environmental_score_coverage_pct.
+    type: simple
+    type_params:
+      measure: score_hours_total
+    config:
+      meta:
+        role: building_block
+
+  - name: environmental_score_coverage_pct
+    label: Score coverage (% of hours with data)
+    description: >
+      Percentage (0-100) of hourly score rows that have a complete composite
+      score. Below 100 means some hours were missing a component or were out
+      of valid range. Hours with no sensor data at all produce no row and are
+      not counted here. NULL when there are no rows.
+    type: derived
+    type_params:
+      expr: 100.0 * scored / NULLIF(total, 0)
+      metrics:
+        - name: scored_hour_count
+          alias: scored
+        - name: environmental_score_hour_count
+          alias: total
+
+  # ---- Target-range compliance (reading-based; see description)
+  # These count individual READINGS, so they approximate, but are not equal to,
+  # the share of elapsed time spent in range (sampling can be uneven).
+  - name: pct_temperature_readings_in_range
+    label: Temperature readings in target range (%)
+    description: >
+      Percentage (0-100) of valid air temperature readings inside the target
+      interval (20-26 C from the conditions rules, limits inclusive). Readings
+      outside the rule's valid range (-10 to 60 C) are excluded from both the
+      numerator and denominator. This is a share of READINGS, not of elapsed
+      time, so uneven sampling or gaps can bias it. NULL when no readings.
+    type: derived
+    type_params:
+      expr: 100.0 * in_range / NULLIF(valid_total, 0)
+      metrics:
+        - name: in_target_range_reading_count
+          alias: in_range
+          filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+        - name: valid_range_reading_count
+          alias: valid_total
+          filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'air_temperature'"
+
+  - name: pct_humidity_readings_in_range
+    label: Humidity readings in target range (%)
+    description: >
+      Percentage (0-100) of valid relative humidity readings inside the target
+      interval (85-97 % from the conditions rules, limits inclusive). A share
+      of READINGS, not of elapsed time. NULL when no readings.
+    type: derived
+    type_params:
+      expr: 100.0 * in_range / NULLIF(valid_total, 0)
+      metrics:
+        - name: in_target_range_reading_count
+          alias: in_range
+          filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'relative_humidity'"
+        - name: valid_range_reading_count
+          alias: valid_total
+          filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'relative_humidity'"
+
+  - name: pct_moisture_readings_below_threshold
+    label: Moisture readings below irrigation threshold (%)
+    description: >
+      Percentage (0-100) of valid calibrated soil moisture readings strictly
+      below 40 %, the lower target limit in the conditions rules and the same
+      value the controller uses to trigger irrigation
+      (PUMP_MOISTURE_THRESHOLD). The controller additionally requires several
+      consecutive low readings, a cooldown and a daily cycle cap, so a high
+      value does not mean irrigation was missed. Share of READINGS, not of
+      elapsed time. NULL when no readings.
+    type: derived
+    type_params:
+      expr: 100.0 * below / NULLIF(valid_total, 0)
+      metrics:
+        - name: below_target_min_reading_count
+          alias: below
+          filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"
+        - name: valid_range_reading_count
+          alias: valid_total
+          filter: "{{ Dimension('sensor_hour__measurement_type') }} = 'soil_moisture'"
+
+  # Generic counts backing the percentages above. They are defined here, next
+  # to their only consumers, over the sensor_hourly semantic model.
+  - name: valid_range_reading_count
+    label: Readings inside valid range (building block)
+    description: >
+      Readings inside the scoring rule's valid range. Building block for the
+      pct_*_readings_* metrics; sums across measurement types unless filtered
+      by sensor_hour__measurement_type.
+    type: simple
+    type_params:
+      measure: valid_range_reading_count
+    config:
+      meta:
+        role: building_block
+
+  - name: in_target_range_reading_count
+    label: Readings inside target interval (building block)
+    description: >
+      Readings inside the target interval (limits inclusive). Building block
+      for pct_temperature_readings_in_range and
+      pct_humidity_readings_in_range; filter by measurement_type.
+    type: simple
+    type_params:
+      measure: in_target_range_reading_count
+    config:
+      meta:
+        role: building_block
+
+  - name: below_target_min_reading_count
+    label: Readings below target minimum (building block)
+    description: >
+      Readings strictly below the lower target limit. Building block for
+      pct_moisture_readings_below_threshold; filter by measurement_type.
+    type: simple
+    type_params:
+      measure: below_target_min_reading_count
+    config:
+      meta:
+        role: building_block

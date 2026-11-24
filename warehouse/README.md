@@ -25,6 +25,11 @@ dbt project over Snowflake `GREENHOUSE_ANALYTICS`. Staging deduplicates raw S3-l
 | `fct_automation_events` | one row per automation event | Fan/pump command and state history (validated, with UTC hour and date) |
 | `fct_actuator_cycles` | one completed ON→OFF cycle | Actuator run start, end, duration, reasons, and pairing method (`/api/v1/history/automations`) |
 
+| `fct_automation_commands` | one command issued | Command outcome (acknowledged, failed, latency); feeds the semantic layer |
+| `metricflow_time_spine_daily`, `metricflow_time_spine_hourly` | one UTC day / hour | Time spines for MetricFlow zero-filling |
+
+`fct_sensor_hourly` also carries three reading-level compliance counts (`valid_range_reading_count`, `in_target_range_reading_count`, `below_target_min_reading_count`) judged against `environmental_score_rules`.
+
 The API also reads `int_sensor_readings` directly for automation overlays, so its role needs `SELECT` on the intermediate schema.
 
 `fct_actuator_cycles` pairs `state_changed` events two ways: by shared `cycle_id` (pump runs) and, for events without one (fan), each ON with the next OFF for that actuator. Cycles that have not yet seen an OFF are not listed.
@@ -38,6 +43,18 @@ Schema docs and tests: [`models/staging/staging.yml`](models/staging/staging.yml
 - [`tests/environmental_score_hourly_bounds.sql`](tests/environmental_score_hourly_bounds.sql)
 - [`tests/environmental_score_hourly_completeness.sql`](tests/environmental_score_hourly_completeness.sql)
 - [`tests/assert_unique_hourly_grain.sql`](tests/assert_unique_hourly_grain.sql), [`tests/assert_unique_daily_grain.sql`](tests/assert_unique_daily_grain.sql)
+- Semantic-layer guards: [`assert_sensor_hourly_matches_daily`](tests/assert_sensor_hourly_matches_daily.sql) (warn), [`assert_sensor_hourly_compliance_counts`](tests/assert_sensor_hourly_compliance_counts.sql), [`assert_unique_actuator_cycle`](tests/assert_unique_actuator_cycle.sql), [`assert_actuator_cycles_valid_duration`](tests/assert_actuator_cycles_valid_duration.sql), [`assert_command_acknowledgment_latency_valid`](tests/assert_command_acknowledgment_latency_valid.sql), [`assert_command_events_have_issued_command`](tests/assert_command_events_have_issued_command.sql) (warn), [`assert_single_score_version`](tests/assert_single_score_version.sql) (warn)
+
+## Semantic layer
+
+A dbt MetricFlow layer over these marts (38 reportable metrics across environmental conditions, environmental health, automation activity and automation reliability) lives in [`models/marts/semantic/`](models/marts/semantic/). Metric catalog, dimensions, caveats, local setup and example queries: [`docs/semantic_layer.md`](docs/semantic_layer.md).
+
+```bash
+pip install -r ../requirements/metricflow.txt
+export DBT_PROFILES_DIR=~/.dbt
+mf validate-configs
+mf query --metrics pump_cycle_count --group-by metric_time__day
+```
 
 ## Scoring rules seed
 

@@ -45,6 +45,28 @@ models:
         data_tests:
           - not_null
 
+      - name: valid_range_reading_count
+        description: >
+          Readings inside the scoring rule's valid range (rule chosen by
+          measurement type and unit; the semantic layer's denominator for
+          target-range percentages).
+        data_tests:
+          - not_null
+
+      - name: in_target_range_reading_count
+        description: >
+          Readings inside the rule's target interval, limits inclusive and
+          restricted to valid-range readings.
+        data_tests:
+          - not_null
+
+      - name: below_target_min_reading_count
+        description: >
+          Readings strictly below the rule's target minimum, restricted to
+          valid-range readings.
+        data_tests:
+          - not_null
+
   - name: fct_sensor_daily
     description: >
       Daily environmental statistics grouped by UTC date,
@@ -285,9 +307,19 @@ models:
 
       - name: desired_state
         description: Commanded on/off state when applicable.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
 
       - name: observed_state
         description: Confirmed relay state for state_changed events.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
 
       - name: reason
         description: Controller reason code for the event.
@@ -326,11 +358,13 @@ models:
         description: state_changed event that observed the actuator turning on.
         data_tests:
           - not_null
+          - unique
 
       - name: off_event_id
         description: state_changed event that observed the actuator turning off.
         data_tests:
           - not_null
+          - unique
 
       - name: started_at_utc
         description: UTC timestamp when the actuator turned on.
@@ -368,3 +402,104 @@ models:
 
       - name: on_soil_moisture_pct
         description: Soil moisture snapshot from the ON event when present.
+
+  - name: fct_automation_commands
+    description: >
+      One row per actuator command issued by the controller, taken from the
+      command_issued event, with the first acknowledgment and first explicit
+      failure collapsed onto it. Feeds the command metrics of the semantic
+      layer, which are attributed to issue time. Duplicate acknowledgments
+      or failure events never create extra rows.
+
+    columns:
+      - name: command_id
+        description: Controller RPC command identifier (UUID).
+        data_tests:
+          - unique
+          - not_null
+
+      - name: actuator
+        description: Actuator that was commanded.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fan', 'pump']
+
+      - name: issued_event_id
+        description: The command_issued event this row is built from.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: issued_at_utc
+        description: UTC timestamp of the command_issued event.
+        data_tests:
+          - not_null
+
+      - name: issued_date_utc
+        description: UTC date of the command_issued event.
+        data_tests:
+          - not_null
+
+      - name: desired_state
+        description: Commanded relay state (true = ON, false = OFF).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+
+      - name: reason
+        description: Controller reason code on the command_issued event.
+
+      - name: cycle_id
+        description: Pump irrigation cycle identifier, when present.
+
+      - name: is_acknowledged
+        description: >
+          True when at least one command_acknowledged event exists. Means
+          the device accepted the RPC, not that the relay changed state.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+
+      - name: first_acknowledged_at_utc
+        description: Earliest acknowledgment timestamp, if any.
+
+      - name: acknowledgment_latency_seconds
+        description: >
+          Seconds from issue to first acknowledgment. Null when the command
+          was not acknowledged or the acknowledgment pre-dates the issue
+          time (clock skew).
+
+      - name: is_failed
+        description: True when at least one command_failed event exists.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+
+      - name: first_failed_at_utc
+        description: Earliest command_failed timestamp, if any.
+
+      - name: failure_reason
+        description: >
+          Reason on the earliest command_failed event: an RPC timeout marker
+          or a device error text.
+
+      - name: is_timeout_outcome_unknown
+        description: >
+          True when the failure was an RPC timeout, so the actual outcome is
+          unknown.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false

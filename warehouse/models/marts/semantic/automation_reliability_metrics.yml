@@ -1,0 +1,309 @@
+version: 2
+
+# Automation reliability: events, commands, acknowledgments, failures.
+#
+# Two semantic models over the same event stream, each with a distinct job so
+# facts are not duplicated:
+#   * automation_events  (fct_automation_events): one row per EVENT. Counts
+#     events as they were recorded, by event time.
+#   * automation_commands (fct_automation_commands): one row per COMMAND
+#     issued, with its acknowledgment and failure outcome collapsed onto it.
+#     All command metrics are attributed to the time the command was ISSUED, so
+#     they describe a cohort: "of commands issued in the period, how many were
+#     acknowledged / failed". A late acknowledgment never moves a command to a
+#     different period, and duplicate acknowledgments never inflate counts.
+#
+# What the data can and cannot prove
+#   * An acknowledgment (command_acknowledged) means the Shelly RPC call
+#     returned success. It does NOT prove the relay changed state. Physical
+#     state is only observed through state_changed events. There is therefore
+#     no "command success rate" built from state changes.
+#   * command_failed covers two different things: an explicit error response
+#     from the device, and an RPC timeout (reason rpc_timeout_outcome_unknown)
+#     where the outcome is UNKNOWN: the command may still have worked.
+#   * Event types and reason values are those emitted by gateway/automation.py.
+#     command_id values are UUIDs, unique per command.
+
+semantic_models:
+  - name: automation_events
+    description: >
+      Automation lifecycle events. Grain: one row per deduplicated event
+      (event_id is unique). Event types: command_issued,
+      command_acknowledged, command_failed, state_changed. Timestamps are
+      UTC. Use for event volumes and state transitions; use
+      automation_commands for command outcomes.
+    model: ref('fct_automation_events')
+    defaults:
+      agg_time_dimension: measured_at_utc
+
+    entities:
+      - name: automation_event
+        type: primary
+        expr: event_id
+      - name: command
+        type: foreign
+        expr: command_id
+
+    dimensions:
+      - name: measured_at_utc
+        type: time
+        type_params:
+          time_granularity: hour
+        description: UTC timestamp at which the controller recorded the event.
+      - name: actuator
+        type: categorical
+        description: Actuator the event concerns, 'fan' or 'pump'.
+      - name: event_type
+        type: categorical
+        description: >
+          command_issued, command_acknowledged, command_failed or
+          state_changed.
+      - name: reason
+        type: categorical
+        description: >
+          Controller reason code. Seen so far: temperature_high,
+          temperature_normal, soil_moisture_low (command_issued);
+          shelly_status and initial_observation (state_changed);
+          unexpected_pump_on, pump_command_runtime_exceeded and
+          pump_runtime_exceeded (safety OFF commands);
+          rpc_timeout_outcome_unknown or a device error text
+          (command_failed). Often NULL on acknowledgments.
+      - name: desired_state
+        type: categorical
+        description: >
+          Commanded relay state (true = ON, false = OFF) on command events;
+          NULL on state_changed events.
+      - name: observed_state
+        type: categorical
+        description: >
+          Relay state observed on state_changed events (true = ON, false =
+          OFF); NULL on command events.
+      - name: is_initial_observation
+        type: categorical
+        expr: COALESCE(reason = 'initial_observation', FALSE)
+        description: >
+          True for the first status read after the controller starts. Those
+          state_changed rows record a starting state, not a transition.
+
+    measures:
+      - name: events
+        description: Distinct automation events.
+        agg: count_distinct
+        expr: event_id
+
+  - name: automation_commands
+    description: >
+      Actuator commands issued by the controller. Grain: one row per
+      (actuator, command_id) taken from the command_issued event, with the
+      first acknowledgment and first explicit failure joined on. Time axis is
+      the issue time. A command with no acknowledgment is not necessarily
+      lost: acknowledgments can arrive after the data was last built.
+    model: ref('fct_automation_commands')
+    defaults:
+      agg_time_dimension: issued_at_utc
+
+    entities:
+      - name: command
+        type: primary
+        expr: command_id
+
+    dimensions:
+      - name: issued_at_utc
+        type: time
+        type_params:
+          time_granularity: hour
+        description: UTC timestamp of the command_issued event.
+      - name: actuator
+        type: categorical
+        description: Actuator commanded, 'fan' or 'pump'.
+      - name: reason
+        type: categorical
+        description: >
+          Why the controller issued the command: temperature_high or
+          temperature_normal (fan), soil_moisture_low (pump), or a safety
+          reason (unexpected_pump_on, pump_command_runtime_exceeded,
+          pump_runtime_exceeded).
+      - name: desired_state
+        type: categorical
+        description: Commanded relay state, true = ON, false = OFF.
+      - name: is_acknowledged
+        type: categorical
+        description: >
+          True when at least one command_acknowledged event exists. Means the
+          device accepted the RPC, not that the relay changed state.
+      - name: is_failed
+        type: categorical
+        description: >
+          True when at least one command_failed event exists (explicit error
+          or RPC timeout).
+      - name: is_timeout_outcome_unknown
+        type: categorical
+        description: >
+          True when the failure was an RPC timeout; the actual outcome is
+          unknown and the relay may have switched.
+      - name: failure_reason
+        type: categorical
+        description: Reason on the first command_failed event, if any.
+
+    measures:
+      - name: commands
+        description: Distinct commands issued.
+        agg: count_distinct
+        expr: command_id
+      - name: acknowledged_commands
+        description: Commands with at least one acknowledgment.
+        agg: sum_boolean
+        expr: is_acknowledged
+      - name: failed_commands
+        description: Commands with at least one command_failed event.
+        agg: sum_boolean
+        expr: is_failed
+      - name: timeout_commands
+        description: Commands whose failure was an RPC timeout.
+        agg: sum_boolean
+        expr: is_timeout_outcome_unknown
+      - name: acknowledgment_latency_avg_seconds
+        description: Average seconds from issue to first acknowledgment.
+        agg: average
+        expr: acknowledgment_latency_seconds
+
+metrics:
+  # ---- Events (by event time)
+  - name: automation_event_count
+    label: Automation events (count)
+    description: >
+      Number of distinct automation events recorded in the period, across all
+      event types. Group by automation_event__event_type, actuator or reason
+      to break it down. Includes initial_observation status reads; use
+      state_change_count for actual transitions. Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: events
+        fill_nulls_with: 0
+        join_to_timespine: true
+
+  - name: state_change_count
+    label: Actuator state changes (count)
+    description: >
+      Number of observed actuator state transitions (state_changed events),
+      excluding initial_observation reads, in the period. Each ON or OFF is
+      one change, so a full cycle is two. Group by
+      automation_event__observed_state for ON versus OFF. Counts what the
+      relay reported, regardless of whether the controller commanded it.
+      Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: events
+        fill_nulls_with: 0
+        join_to_timespine: true
+    filter: |
+      {{ Dimension('automation_event__event_type') }} = 'state_changed'
+      AND {{ Dimension('automation_event__is_initial_observation') }} = FALSE
+
+  # ---- Commands (by issue time; cohort semantics)
+  - name: command_issued_count
+    label: Commands issued (count)
+    description: >
+      Number of distinct actuator commands issued in the period (one per
+      command_id, including safety OFF commands). Denominator for
+      command_acknowledgment_rate_pct. Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: commands
+        fill_nulls_with: 0
+        join_to_timespine: true
+
+  - name: command_acknowledged_count
+    label: Commands acknowledged (count)
+    description: >
+      Number of commands ISSUED in the period that were explicitly
+      acknowledged at least once. Counts each command once however many
+      acknowledgments or retries exist. Acknowledged means the device accepted
+      the RPC, not that the relay changed state. Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: acknowledged_commands
+        fill_nulls_with: 0
+        join_to_timespine: true
+
+  - name: command_failure_count
+    label: Commands failed (count)
+    description: >
+      Number of commands ISSUED in the period with at least one
+      command_failed event: an explicit device error or an RPC timeout. Each
+      command is counted once. Includes timeouts whose outcome is unknown (see
+      command_timeout_count); a failed command may still have switched the
+      relay. Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: failed_commands
+        fill_nulls_with: 0
+        join_to_timespine: true
+
+  - name: command_timeout_count
+    label: Command RPC timeouts, outcome unknown (count)
+    description: >
+      Number of commands ISSUED in the period whose command_failed event was
+      an RPC timeout (reason rpc_timeout_outcome_unknown). A subset of
+      command_failure_count. The outcome is unknown, not a proven failure.
+      Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: timeout_commands
+        fill_nulls_with: 0
+        join_to_timespine: true
+
+  - name: unexpected_pump_on_command_count
+    label: Safety OFF commands for unexpected pump ON (count)
+    description: >
+      Number of pump OFF commands issued in the period because the controller
+      saw the pump ON with no active irrigation cycle (reason
+      unexpected_pump_on). It counts the controller's RESPONSES, one per
+      command, and retries every few seconds are separate commands, so it
+      overstates the number of distinct unexpected activations. Other pump
+      safety shutoffs (runtime exceeded) are excluded. Zero when none.
+    type: simple
+    type_params:
+      measure:
+        name: commands
+        fill_nulls_with: 0
+        join_to_timespine: true
+    filter: |
+      {{ Dimension('command__actuator') }} = 'pump'
+      AND {{ Dimension('command__reason') }} = 'unexpected_pump_on'
+
+  - name: command_acknowledgment_rate_pct
+    label: Command acknowledgment rate (%)
+    description: >
+      Percentage (0-100) of distinct commands issued in the period that were
+      acknowledged at least once. Cohort measure by issue time, so a command
+      acknowledged after the period ends still counts. Acknowledgment shows
+      the device accepted the RPC; it is not proof the relay changed state and
+      must not be read as an execution success rate. NULL when no commands
+      were issued. Very recent commands may not yet have an acknowledgment in
+      the warehouse.
+    type: derived
+    type_params:
+      expr: 100.0 * acknowledged / NULLIF(issued, 0)
+      metrics:
+        - name: command_acknowledged_count
+          alias: acknowledged
+        - name: command_issued_count
+          alias: issued
+
+  - name: avg_command_acknowledgment_latency_seconds
+    label: Average acknowledgment latency (seconds)
+    description: >
+      Average seconds between a command being issued and its first
+      acknowledgment, for commands issued in the period that were
+      acknowledged. NULL when none were acknowledged. Measures the RPC round
+      trip as seen by the controller, not relay switching time.
+    type: simple
+    type_params:
+      measure: acknowledgment_latency_avg_seconds
