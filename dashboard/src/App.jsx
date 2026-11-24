@@ -19,6 +19,7 @@ function readSidebarCollapsed() {
 
 export default function App() {
   const [page, setPage] = useState("home");
+  const [analyticsMode, setAnalyticsMode] = useState("score");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [now, setNow] = useState(() => Date.now());
   const { readings, status, error, lastFetchedAt } = useLiveReadings({
@@ -42,11 +43,23 @@ export default function App() {
     });
   }
 
+  function navigate(nextPage) {
+    setPage(nextPage);
+    if (nextPage === "analytics") {
+      setAnalyticsMode("score");
+    }
+  }
+
+  function openAutomationAnalytics() {
+    setAnalyticsMode("automations");
+    setPage("analytics");
+  }
+
   return (
     <div className={sidebarCollapsed ? "app-shell is-collapsed" : "app-shell"}>
       <Sidebar
         page={page}
-        onNavigate={setPage}
+        onNavigate={navigate}
         collapsed={sidebarCollapsed}
         onToggleCollapsed={toggleSidebar}
       />
@@ -59,11 +72,16 @@ export default function App() {
             error={error}
             lastFetchedAt={lastFetchedAt}
             now={now}
+            onOpenAutomationAnalytics={openAutomationAnalytics}
           />
         )}
         {page === "control" && <ControlPage />}
         {page === "analytics" && (
-          <AnalyticsPage readings={readings} now={now} />
+          <AnalyticsPage
+            readings={readings}
+            now={now}
+            initialMode={analyticsMode}
+          />
         )}
         {page === "about" && <AboutPage />}
       </main>

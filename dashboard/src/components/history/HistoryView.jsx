@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { discoveryFromLiveReadings } from "../../lib/historyStats.js";
 import { sortMeasurementTypes } from "../../lib/metrics.js";
 import { gatewaysFromReadings } from "../../lib/scoreStats.js";
+import { useAutomationHistory } from "../../hooks/useAutomationHistory.js";
 import { useHistoricalSeries } from "../../hooks/useHistoricalSeries.js";
 import { useScoreHistory } from "../../hooks/useScoreHistory.js";
-import { ComingSoonPanel } from "../shared/ComingSoonPanel.jsx";
+import { AutomationHistoryChart } from "./AutomationHistoryChart.jsx";
 import { HistoryChart } from "./HistoryChart.jsx";
 import { HistoryControls } from "./HistoryControls.jsx";
 import { HistoryInsights } from "./HistoryInsights.jsx";
@@ -13,22 +14,34 @@ import { ScoreHistoryChart } from "./ScoreHistoryChart.jsx";
 import { ScoreHistorySummary } from "./ScoreHistorySummary.jsx";
 import { historyDisplayUnit, PERIOD_LABELS } from "../../lib/format.js";
 
+const HISTORY_MODES = new Set(["score", "sensor", "automations"]);
+const ACTUATORS = ["pump", "fan"];
+const PERIODS = ["24h", "7d", "30d"];
+
 /**
  * Sensor / measurement discovery uses the live latest endpoint.
  * Sensors that only exist in the warehouse (no current Redis key) will not
  * appear here until a dedicated history metadata endpoint exists.
  */
-export function HistoryView({ readings, now, embedded = false }) {
+export function HistoryView({
+  readings,
+  now,
+  embedded = false,
+  initialMode = "score",
+}) {
   const discovery = useMemo(
     () => discoveryFromLiveReadings(readings, sortMeasurementTypes),
     [readings]
   );
   const gateways = useMemo(() => gatewaysFromReadings(readings), [readings]);
 
-  const [mode, setMode] = useState("score");
+  const [mode, setMode] = useState(
+    HISTORY_MODES.has(initialMode) ? initialMode : "score"
+  );
   const [sensorId, setSensorId] = useState("");
   const [measurementType, setMeasurementType] = useState("");
   const [gatewayId, setGatewayId] = useState("");
+  const [actuator, setActuator] = useState("pump");
   const [period, setPeriod] = useState("7d");
 
   const resolvedSensorId =
@@ -49,6 +62,8 @@ export function HistoryView({ readings, now, embedded = false }) {
       ? gatewayId
       : (gateways[0] ?? "");
 
+  const resolvedActuator = ACTUATORS.includes(actuator) ? actuator : "pump";
+
   const sensorSeries = useHistoricalSeries({
     sensorId: resolvedSensorId,
     measurementType: resolvedMeasurementType,
@@ -62,6 +77,13 @@ export function HistoryView({ readings, now, embedded = false }) {
     gatewayId: resolvedGatewayId,
     period,
     enabled: mode === "score" && Boolean(resolvedGatewayId),
+  });
+
+  const automationSeries = useAutomationHistory({
+    gatewayId: resolvedGatewayId,
+    actuator: resolvedActuator,
+    period,
+    enabled: mode === "automations" && Boolean(resolvedGatewayId),
   });
 
   const liveReading = useMemo(
@@ -79,6 +101,16 @@ export function HistoryView({ readings, now, embedded = false }) {
     sensorSeries.series?.unit,
     sensorSeries.summary.unit,
     liveReading?.unit
+  );
+
+  const automationMeasurementType =
+    automationSeries.series?.measurement_type ??
+    (resolvedActuator === "fan" ? "air_temperature" : "soil_moisture");
+
+  const automationUnit = historyDisplayUnit(
+    automationMeasurementType,
+    automationSeries.series?.unit,
+    automationSeries.summary.unit
   );
 
   return (
@@ -106,8 +138,8 @@ export function HistoryView({ readings, now, embedded = false }) {
         <div className="section-block-head">
           <h3 className="section-heading">Environmental trends</h3>
           <p className="view-copy">
-            Conditions score or individual sensor series. Hourly for 24h/7d,
-            daily for 30d.
+            Conditions score, sensor series, or automation overlays. Hourly for
+            24h/7d, daily for 30d.
           </p>
         </div>
       )}
@@ -143,10 +175,102 @@ export function HistoryView({ readings, now, embedded = false }) {
       </div>
 
       {mode === "automations" ? (
-        <ComingSoonPanel
-          title="Automation analytics"
-          description="Counts, timing, and outcome charts for fan and pump events need dbt marts on automation topics. Placeholder until those models ship."
-        />
+        <>
+          <div
+            className="history-controls"
+            role="group"
+            aria-label="Automation filters"
+          >
+            <label className="control">
+              <span className="control-label">Gateway</span>
+              <select
+                value={resolvedGatewayId}
+                onChange={(event) => setGatewayId(event.target.value)}
+                disabled={gateways.length === 0}
+              >
+                {gateways.length === 0 && (
+                  <option value="">No gateways found</option>
+                )}
+                {gateways.map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="control">
+              <span className="control-label">Actuator</span>
+              <select
+                value={resolvedActuator}
+                onChange={(event) => setActuator(event.target.value)}
+              >
+                {ACTUATORS.map((value) => (
+                  <option key={value} value={value}>
+                    {value === "pump" ? "Pump" : "Fan"}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="control control-period">
+              <span className="control-label" id="automation-period-label">
+                Period
+              </span>
+              <div
+                className="segmented"
+                role="radiogroup"
+                aria-labelledby="automation-period-label"
+              >
+                {PERIODS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={period === value}
+                    className={
+                      period === value ? "segment is-active" : "segment"
+                    }
+                    onClick={() => setPeriod(value)}
+                    disabled={gateways.length === 0}
+                  >
+                    {PERIOD_LABELS[value] ?? value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {gateways.length === 0 && (
+            <p className="notice notice-info" role="status">
+              No live gateways available. Automation history discovery uses the
+              live endpoint.
+            </p>
+          )}
+
+          {automationSeries.error && (
+            <p className="notice" role="alert">
+              {automationSeries.error}
+            </p>
+          )}
+
+          <AutomationHistoryChart
+            data={automationSeries.chartData}
+            cycles={automationSeries.cycles}
+            resolution={automationSeries.resolution}
+            period={period}
+            unit={automationUnit}
+            measurementType={automationMeasurementType}
+            actuator={resolvedActuator}
+            status={
+              gateways.length === 0
+                ? "error"
+                : automationSeries.status === "idle"
+                  ? "loading"
+                  : automationSeries.status
+            }
+          />
+        </>
       ) : mode === "score" ? (
         <>
           <div className="history-controls history-controls-score">
@@ -177,7 +301,7 @@ export function HistoryView({ readings, now, embedded = false }) {
                 role="radiogroup"
                 aria-labelledby="score-period-label"
               >
-                {["24h", "7d", "30d"].map((value) => (
+                {PERIODS.map((value) => (
                   <button
                     key={value}
                     type="button"

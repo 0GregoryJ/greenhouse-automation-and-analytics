@@ -13,15 +13,14 @@ const ANALYTICS_PROMPTS = [
   "Which hours were farthest from target conditions?",
 ];
 
-export function AnalyticsPage({ readings, now }) {
+export function AnalyticsPage({ readings, now, initialMode = "score" }) {
   return (
     <section className="view analytics-view" aria-label="Analytics">
       <div className="view-toolbar">
         <div>
           <h2 className="view-title">Analytics</h2>
           <p className="view-copy">
-            Warehouse trends for conditions and sensors. Automation analytics
-            and natural-language exploration are on the way.
+            Warehouse trends for conditions, sensors, and automation cycles.
           </p>
         </div>
         <span className="pill pill-idle">
@@ -47,7 +46,13 @@ export function AnalyticsPage({ readings, now }) {
           </div>
         }
       >
-        <HistoryView readings={readings} now={now} embedded />
+        <HistoryView
+          key={initialMode}
+          readings={readings}
+          now={now}
+          embedded
+          initialMode={initialMode}
+        />
       </Suspense>
     </section>
   );

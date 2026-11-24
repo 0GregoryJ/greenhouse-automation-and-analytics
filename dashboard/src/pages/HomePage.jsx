@@ -24,7 +24,14 @@ function getStatus({ loaded, error, readings, now }) {
     : { key: "stale", label: "Stale" };
 }
 
-export function HomePage({ readings, status: loadStatus, error, lastFetchedAt, now }) {
+export function HomePage({
+  readings,
+  status: loadStatus,
+  error,
+  lastFetchedAt,
+  now,
+  onOpenAutomationAnalytics,
+}) {
   const loaded = loadStatus !== "loading" || readings.length > 0;
   const sorted = [...readings].sort(
     (a, b) =>
@@ -132,6 +139,7 @@ export function HomePage({ readings, status: loadStatus, error, lastFetchedAt, n
           status={automationStatus}
           error={automationError}
           now={now}
+          onOpenAnalytics={onOpenAutomationAnalytics}
           style={
             automationsHeight
               ? { height: `${automationsHeight}px` }

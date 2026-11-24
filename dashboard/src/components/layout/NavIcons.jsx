@@ -115,3 +115,18 @@ export function IconDroplet({ className }) {
     </svg>
   );
 }
+
+export function IconArrowUpRight({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7 17 17 7M10 7h7v7"
+      />
+    </svg>
+  );
+}

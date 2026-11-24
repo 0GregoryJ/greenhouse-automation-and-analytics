@@ -1,15 +1,28 @@
+import { useMemo } from "react";
 import {
-  formatAutomationHeadline,
-  formatAutomationTime,
-} from "../../lib/automationDisplay.js";
-import { IconDroplet, IconFan } from "../layout/NavIcons.jsx";
+  consolidateAutomationCycles,
+  formatCycleHeadline,
+} from "../../lib/automationCycles.js";
+import { formatAutomationTime } from "../../lib/automationDisplay.js";
+import { IconArrowUpRight, IconDroplet, IconFan } from "../layout/NavIcons.jsx";
 
 function ActuatorIcon({ actuator }) {
   if (actuator === "fan") return <IconFan className="auto-item-icon" />;
   return <IconDroplet className="auto-item-icon" />;
 }
 
-export function RecentAutomations({ events, status, error, now, style }) {
+export function RecentAutomations({
+  events,
+  status,
+  error,
+  now,
+  style,
+  onOpenAnalytics,
+}) {
+  const cycles = useMemo(
+    () => consolidateAutomationCycles(events, { limit: 8 }),
+    [events]
+  );
   const loaded = status !== "loading" || events.length > 0;
 
   return (
@@ -19,11 +32,24 @@ export function RecentAutomations({ events, status, error, now, style }) {
       style={style}
     >
       <header className="auto-panel-head">
-        <h2>Recent automations</h2>
-        <p className="auto-panel-copy">Latest fan and pump events</p>
+        <div className="auto-panel-heading">
+          <h2>Recent automations</h2>
+          <p className="auto-panel-copy">Latest fan and pump cycles</p>
+        </div>
+        {typeof onOpenAnalytics === "function" && (
+          <button
+            type="button"
+            className="auto-panel-link"
+            onClick={onOpenAnalytics}
+            aria-label="Open automation analytics"
+            title="Automation analytics"
+          >
+            <IconArrowUpRight className="auto-panel-link-icon" />
+          </button>
+        )}
       </header>
 
-      {error && events.length === 0 && (
+      {error && cycles.length === 0 && (
         <p className="auto-empty" role="status">
           Automation feed unavailable.
         </p>
@@ -37,36 +63,28 @@ export function RecentAutomations({ events, status, error, now, style }) {
         </ul>
       )}
 
-      {loaded && events.length === 0 && !error && (
-        <p className="auto-empty">No automation events yet.</p>
+      {loaded && cycles.length === 0 && !error && (
+        <p className="auto-empty">No automation cycles yet.</p>
       )}
 
-      {events.length > 0 && (
+      {cycles.length > 0 && (
         <ul className="auto-list">
-          {events.map((event) => (
-            <li
-              key={event.event_id ?? `${event.actuator}-${event.timestamp_utc}`}
-              className="auto-item"
-            >
+          {cycles.map((cycle) => (
+            <li key={cycle.id} className="auto-item">
               <span
-                className={`auto-item-mark auto-item-mark-${event.actuator ?? "pump"}`}
+                className={`auto-item-mark auto-item-mark-${cycle.actuator ?? "pump"}`}
                 aria-hidden="true"
               >
-                <ActuatorIcon actuator={event.actuator} />
+                <ActuatorIcon actuator={cycle.actuator} />
               </span>
               <div className="auto-item-body">
-                <p className="auto-item-title">
-                  {formatAutomationHeadline(event)}
-                </p>
-                {event.reason && (
-                  <p className="auto-item-reason">{event.reason}</p>
+                <p className="auto-item-title">{formatCycleHeadline(cycle)}</p>
+                {cycle.reason && (
+                  <p className="auto-item-reason">{cycle.reason}</p>
                 )}
               </div>
-              <time
-                className="auto-item-time"
-                dateTime={event.timestamp_utc}
-              >
-                {formatAutomationTime(event.timestamp_utc, now)}
+              <time className="auto-item-time" dateTime={cycle.started_at}>
+                {formatAutomationTime(cycle.started_at, now)}
               </time>
             </li>
           ))}

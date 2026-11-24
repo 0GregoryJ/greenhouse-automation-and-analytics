@@ -23,6 +23,7 @@ export const API_BASE_URL = resolveApiBaseUrl();
 
 export const LIVE_LATEST_URL = `${API_BASE_URL}/api/v1/sensors/latest`;
 export const HISTORY_SERIES_URL = `${API_BASE_URL}/api/v1/history/series`;
+export const HISTORY_AUTOMATIONS_URL = `${API_BASE_URL}/api/v1/history/automations`;
 export const ENVIRONMENT_SCORE_CURRENT_URL = `${API_BASE_URL}/api/v1/environment/score/current`;
 export const ENVIRONMENT_SCORE_HISTORY_URL = `${API_BASE_URL}/api/v1/environment/score/history`;
 export const AUTOMATION_EVENTS_RECENT_URL = `${API_BASE_URL}/api/v1/automation/events/recent`;

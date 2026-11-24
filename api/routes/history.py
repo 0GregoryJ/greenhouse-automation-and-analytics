@@ -4,7 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 
-from api.services.history import fetch_history
+from api.services.history import fetch_automation_history, fetch_history
 
 logger = logging.getLogger(__name__)
 
@@ -32,4 +32,28 @@ def get_history_series(
         raise HTTPException(
             status_code=503,
             detail="Historical analytics temporarily unavailable",
+        )
+
+
+@router.get("/automations")
+def get_automation_history_series(
+    gateway_id: str = Query(min_length=1, max_length=128),
+    actuator: Literal["pump", "fan"] = "pump",
+    period: Literal["24h", "7d", "30d"] = "7d",
+):
+    try:
+        return fetch_automation_history(
+            gateway_id=gateway_id,
+            actuator=actuator,
+            period=period,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    except Exception:
+        logger.exception("Automation history query failed")
+        raise HTTPException(
+            status_code=503,
+            detail="Automation history temporarily unavailable",
         )

@@ -49,6 +49,29 @@ SCORE_PERIODS = {
     },
 }
 
+# Automation analytics: sensor series from int_sensor_readings + cycle markers.
+AUTOMATION_ACTUATORS = {
+    "pump": {
+        "measurement_type": "soil_moisture",
+        "value_expr": "CALIBRATED_MOISTURE",
+        "unit": "percent",
+    },
+    "fan": {
+        "measurement_type": "air_temperature",
+        "value_expr": "VALUE",
+        "unit": "celsius",
+    },
+}
+
+AUTOMATION_PERIODS = {
+    "24h": {"hours": 24, "resolution": "hour", "trunc": "HOUR"},
+    "7d": {"hours": 168, "resolution": "hour", "trunc": "HOUR"},
+    "30d": {"hours": 720, "resolution": "day", "trunc": "DAY"},
+}
+
+INTERMEDIATE_SCHEMA = "GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_INTERMEDIATE"
+MARTS_SCHEMA = "GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_MARTS"
+
 
 def get_connection():
     """Open a connection using the API service user's RSA key."""
@@ -247,4 +270,108 @@ def get_environmental_score_history(
         ),
         "count": len(points),
         "points": points,
+    }
+
+
+def get_automation_history(gateway_id: str, actuator: str, period: str):
+    """Sensor series from int_sensor_readings with actuator cycle markers."""
+
+    if actuator not in AUTOMATION_ACTUATORS:
+        raise ValueError("Unsupported actuator")
+    if period not in AUTOMATION_PERIODS:
+        raise ValueError("Unsupported period")
+
+    actuator_config = AUTOMATION_ACTUATORS[actuator]
+    period_config = AUTOMATION_PERIODS[period]
+    measurement_type = actuator_config["measurement_type"]
+    value_expr = actuator_config["value_expr"]
+    unit = actuator_config["unit"]
+    trunc = period_config["trunc"]
+    hours = period_config["hours"]
+
+    series_sql = f"""
+        SELECT
+            DATE_TRUNC('{trunc}', MEASURED_AT_UTC) AS POINT_TIME,
+            AVG({value_expr}) AS AVG_VALUE,
+            MIN({value_expr}) AS MIN_VALUE,
+            MAX({value_expr}) AS MAX_VALUE,
+            COUNT(*) AS READING_COUNT
+        FROM {INTERMEDIATE_SCHEMA}.INT_SENSOR_READINGS
+        WHERE GATEWAY_ID = %s
+          AND MEASUREMENT_TYPE = %s
+          AND MEASURED_AT_UTC >= DATEADD(
+              'HOUR', -{hours}, CURRENT_TIMESTAMP()
+          )
+          AND {value_expr} IS NOT NULL
+        GROUP BY 1
+        ORDER BY 1
+    """
+
+    cycles_sql = f"""
+        SELECT
+            CYCLE_ID,
+            ACTUATOR,
+            STARTED_AT_UTC,
+            ENDED_AT_UTC,
+            DURATION_SECONDS,
+            ON_REASON
+        FROM {MARTS_SCHEMA}.FCT_ACTUATOR_CYCLES
+        WHERE ACTUATOR = %s
+          AND STARTED_AT_UTC >= DATEADD(
+              'HOUR', -{hours}, CURRENT_TIMESTAMP()
+          )
+        ORDER BY STARTED_AT_UTC
+    """
+
+    with closing(get_connection()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(series_sql, (gateway_id, measurement_type))
+            series_rows = cursor.fetchall()
+
+            cursor.execute(cycles_sql, (actuator,))
+            cycle_rows = cursor.fetchall()
+
+    points = []
+    for timestamp, avg, minimum, maximum, count in series_rows:
+        points.append({
+            "timestamp": to_utc_iso(timestamp),
+            "avg": float(avg),
+            "min": float(minimum),
+            "max": float(maximum),
+            "count": int(count),
+            "unit": unit,
+        })
+
+    cycles = []
+    for (
+        cycle_id,
+        cycle_actuator,
+        started_at,
+        ended_at,
+        duration_seconds,
+        on_reason,
+    ) in cycle_rows:
+        cycles.append({
+            "cycle_id": str(cycle_id),
+            "actuator": cycle_actuator,
+            "started_at": to_utc_iso(started_at),
+            "ended_at": to_utc_iso(ended_at) if ended_at is not None else None,
+            "duration_seconds": (
+                int(duration_seconds)
+                if duration_seconds is not None
+                else None
+            ),
+            "reason": on_reason,
+        })
+
+    return {
+        "gateway_id": gateway_id,
+        "actuator": actuator,
+        "measurement_type": measurement_type,
+        "period": period,
+        "resolution": period_config["resolution"],
+        "unit": unit,
+        "count": len(points),
+        "points": points,
+        "cycles": cycles,
     }
