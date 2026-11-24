@@ -1,12 +1,21 @@
 with source_events as (
     select
         EVENT:event_id::VARCHAR as event_id,
+        EVENT:command_id::VARCHAR AS command_id,
+        EVENT:cycle_id::VARCHAR AS cycle_id,
+        
         EVENT:schema_version::INTEGER AS schema_version,
         EVENT:actuator::VARCHAR as actuator,
         EVENT:event_type::VARCHAR as event_type,
-        EVENT:observed_state::VARCHAR as observed_state,
+        TRY_TO_BOOLEAN(
+            EVENT:desired_state::VARCHAR
+        ) AS desired_state,
+        TRY_TO_BOOLEAN(
+            EVENT:observed_state::VARCHAR
+        ) AS observed_state,
         EVENT:reason::VARCHAR as reason,
         EVENT:temperature_c::FLOAT as temperature_c,
+        EVENT:soil_moisture_pct::FLOAT as soil_moisture_pct,
         TRY_TO_TIMESTAMP_TZ(EVENT:timestamp_utc::VARCHAR) AS measured_at,
 
         EVENT:_kafka_topic::VARCHAR AS kafka_topic,

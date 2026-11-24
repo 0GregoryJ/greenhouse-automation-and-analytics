@@ -228,3 +228,143 @@ models:
         description: Number of hourly rows considered.
         data_tests:
           - not_null
+
+  - name: fct_automation_events
+    description: >
+      One row per deduplicated automation event from the gateway
+      controller (fan and pump). Typed from stg_automation_events
+      with UTC timestamps for analytics joins.
+
+    columns:
+      - name: event_id
+        description: Unique automation event identifier.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: actuator
+        description: Actuator name (`fan` or `pump`).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fan', 'pump']
+
+      - name: event_type
+        description: Automation lifecycle event type.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - command_issued
+                  - command_acknowledged
+                  - command_failed
+                  - state_changed
+
+      - name: measured_at_utc
+        description: Event timestamp normalized to UTC.
+        data_tests:
+          - not_null
+
+      - name: measurement_hour_utc
+        description: UTC hour bucket containing the event.
+        data_tests:
+          - not_null
+
+      - name: measurement_date_utc
+        description: UTC date containing the event.
+        data_tests:
+          - not_null
+
+      - name: cycle_id
+        description: Optional pump cycle identifier linking related events.
+
+      - name: command_id
+        description: Optional Shelly RPC command identifier.
+
+      - name: desired_state
+        description: Commanded on/off state when applicable.
+
+      - name: observed_state
+        description: Confirmed relay state for state_changed events.
+
+      - name: reason
+        description: Controller reason code for the event.
+
+      - name: temperature_c
+        description: Air temperature snapshot when present.
+
+      - name: soil_moisture_pct
+        description: Calibrated soil moisture percent when present.
+
+  - name: fct_actuator_cycles
+    description: >
+      One row per completed actuator ON→OFF cycle.
+      Pump cycles with a shared cycle_id are paired on that id.
+      Other transitions (for example fan) are paired sequentially
+      from state_changed observations. Incomplete cycles that are
+      still ON are excluded.
+
+    columns:
+      - name: cycle_id
+        description: >
+          Controller cycle_id when available; otherwise the ON
+          event_id used as a surrogate key.
+        data_tests:
+          - not_null
+
+      - name: actuator
+        description: Actuator that completed an ON/OFF cycle.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fan', 'pump']
+
+      - name: on_event_id
+        description: state_changed event that observed the actuator turning on.
+        data_tests:
+          - not_null
+
+      - name: off_event_id
+        description: state_changed event that observed the actuator turning off.
+        data_tests:
+          - not_null
+
+      - name: started_at_utc
+        description: UTC timestamp when the actuator turned on.
+        data_tests:
+          - not_null
+
+      - name: ended_at_utc
+        description: UTC timestamp when the actuator turned off.
+        data_tests:
+          - not_null
+
+      - name: duration_seconds
+        description: Elapsed seconds between ON and OFF observations.
+        data_tests:
+          - not_null
+
+      - name: pairing_method
+        description: >
+          How the ON/OFF pair was formed (`cycle_id` or
+          `sequential_state`).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['cycle_id', 'sequential_state']
+
+      - name: on_reason
+        description: Reason on the ON state_changed event.
+
+      - name: off_reason
+        description: Reason on the OFF state_changed event.
+
+      - name: on_temperature_c
+        description: Temperature snapshot from the ON event when present.
+
+      - name: on_soil_moisture_pct
+        description: Soil moisture snapshot from the ON event when present.

@@ -10,6 +10,8 @@ dbt project over Snowflake `GREENHOUSE_ANALYTICS`. Staging deduplicates raw S3-l
 | `fct_sensor_daily` | gateway × sensor × measurement × UTC date | Sensor history (`30d`) |
 | `fct_environmental_score_hourly` | gateway × UTC hour | Environmental score history (`24h` / `7d`) |
 | `fct_environmental_score_daily` | gateway × UTC date | Environmental score history (`30d`) |
+| `fct_automation_events` | one row per automation event | Fan/pump command and state history |
+| `fct_actuator_cycles` | one completed ON→OFF cycle | Actuator run duration and pairing |
 
 Hourly environmental scores apply the versioned rules to **hourly average** temperature, humidity, and soil moisture from `fct_sensor_hourly`, then form a weighted composite when all three components are valid. That is **not** the same as scoring every synchronized raw event.
 

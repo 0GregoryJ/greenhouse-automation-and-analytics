@@ -100,8 +100,20 @@ models:
       - name: temperature_c
         description: Temperature in Celcius if fan event.
 
+      - name: soil_moisture_pct
+        description: Calibrated soil moisture percent when present on pump events.
+
+      - name: desired_state
+        description: Commanded relay state when the event is command-related.
+
       - name: observed_state
         description: Observed state (boolean).
+
+      - name: command_id
+        description: RPC command identifier when present.
+
+      - name: cycle_id
+        description: Pump irrigation cycle identifier when present.
 
       - name: kafka_topic
         description: Kafka topic containing the original event.
