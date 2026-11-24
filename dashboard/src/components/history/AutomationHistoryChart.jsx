@@ -212,6 +212,8 @@ export function AutomationHistoryChart({
             />
             {cycleMarkers.map((cycle) => {
               const duration = formatDurationSeconds(cycle.duration_seconds);
+              const showDurationLabel = period === "24h" && Boolean(duration);
+
               return (
                 <ReferenceLine
                   key={cycle.cycle_id}
@@ -219,12 +221,16 @@ export function AutomationHistoryChart({
                   stroke="var(--stale)"
                   strokeDasharray="4 4"
                   strokeWidth={1.5}
-                  label={{
-                    value: duration ? `${duration}` : actuatorLabel,
-                    position: "insideTopRight",
-                    fill: "var(--muted)",
-                    fontSize: 10,
-                  }}
+                  label={
+                    showDurationLabel
+                      ? {
+                          value: duration,
+                          position: "insideTopRight",
+                          fill: "var(--muted)",
+                          fontSize: 10,
+                        }
+                      : undefined
+                  }
                 />
               );
             })}

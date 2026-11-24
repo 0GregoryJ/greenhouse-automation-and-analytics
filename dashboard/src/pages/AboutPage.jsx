@@ -33,8 +33,14 @@ export function AboutPage() {
           </li>
         </ul>
         <p className="about-note">
-          Control, AI analyst, and automation analytics panels are placeholders
-          until those product surfaces are ready.
+          Source code:{" "}
+          <a
+            href="https://github.com/0GregoryJ/greenhouse-iot-streaming-pipeline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            github.com/0GregoryJ/greenhouse-iot-streaming-pipeline
+          </a>
         </p>
       </div>
     </section>

@@ -1329,6 +1329,8 @@
   display: grid;
   gap: 8px;
   flex: 1 1 auto;
+  align-content: start;
+  grid-auto-rows: max-content;
   min-height: 0;
   max-height: 100%;
   overflow-y: auto;
@@ -1337,10 +1339,10 @@
 
 .auto-item {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   gap: 10px;
-  align-items: start;
-  padding: 10px;
+  align-items: center;
+  padding: 8px 10px;
   border-radius: 10px;
   background: var(--bg);
 }
@@ -1361,9 +1363,9 @@
 .auto-item-mark {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   color: var(--accent);
   background: var(--accent-bg);
 }
@@ -1459,6 +1461,16 @@
   margin: 0;
 }
 
+.about-note a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.about-note a:hover {
+  color: var(--text);
+}
+
 /* Footer */
 
 .page-foot {
@@ -1522,6 +1534,8 @@
     grid-template-columns: 1fr;
   }
 
+  .history-controls-score .control:first-child,
+  .history-controls-score .control-period,
   .control-period {
     grid-column: auto;
     min-width: 0;
@@ -1627,12 +1641,14 @@
   .history-mode {
     display: flex;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
   }
 
   .history-mode .tab {
-    flex: 1 0 auto;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 4px;
+    font-size: 0.72rem;
     white-space: nowrap;
     text-align: center;
   }
