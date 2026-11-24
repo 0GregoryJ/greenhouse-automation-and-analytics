@@ -21,6 +21,10 @@ copy warehouse/ ./warehouse/
 RUN useradd --create-home appuser
 USER appuser
 
+# Install git.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
 EXPOSE 8000
 
 # Start the FastAPI server.
