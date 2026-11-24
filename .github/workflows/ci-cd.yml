@@ -187,8 +187,10 @@ jobs:
       - name: Verify Snowflake connection
         run: dbt debug
 
-      - name: Build models and run tests
+      - name: Parse to generate metricflow metadata
         run: dbt parse
+
+      - name: Build models and run tests
         run: dbt build --target prod
 
   # ------------------------------------------------------------
