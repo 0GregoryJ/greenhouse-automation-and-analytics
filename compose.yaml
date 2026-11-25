@@ -58,8 +58,10 @@ services:
       SNOWFLAKE_PRIVATE_KEY_PATH: /run/secrets/snowflake_api_key.pem
       SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE:?Snowflake private key passphrase required}
 
+      DBT_PROJECT_DIR: /app/warehouse
       DBT_PROFILES_DIR: /app/.dbt
       DBT_LOG_PATH: /tmp
+      DBT_TARGET: prod
 
     volumes:
       # Host PEM from SNOWFLAKE_KEY_HOST_PATH; readable by the container user (appuser).

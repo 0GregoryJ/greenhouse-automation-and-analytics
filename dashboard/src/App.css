@@ -1328,13 +1328,8 @@
   padding: 0;
   display: grid;
   gap: 8px;
-  flex: 1 1 auto;
   align-content: start;
   grid-auto-rows: max-content;
-  min-height: 0;
-  max-height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .auto-item {
@@ -1522,7 +1517,8 @@
 
   .home-secondary .auto-panel {
     height: auto !important;
-    max-height: 280px;
+    min-height: 0 !important;
+    max-height: none;
   }
 
   .score-components {

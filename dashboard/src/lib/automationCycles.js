@@ -99,6 +99,119 @@ function pairActuatorCycles(actuator, events) {
   return cycles;
 }
 
+/** Home automations list should not shrink below this when older cycles exist. */
+export const MIN_DISPLAYED_AUTOMATION_CYCLES = 5;
+
+function cycleIdFromDisplayId(id) {
+  if (typeof id !== "string" || !id.startsWith("cycle:")) return null;
+  const parts = id.split(":");
+  if (parts.length < 3) return null;
+  return parts.slice(2).join(":");
+}
+
+function identityKeys(cycle) {
+  const keys = [];
+  const cycleId = cycle.cycle_id ?? cycleIdFromDisplayId(cycle.id);
+  if (cycleId) keys.push(`cycle:${cycle.actuator}:${cycleId}`);
+
+  const startedMs = new Date(cycle.started_at).getTime();
+  if (Number.isFinite(startedMs)) {
+    keys.push(`start:${cycle.actuator}:${Math.floor(startedMs / 1000)}`);
+  }
+
+  return keys;
+}
+
+function chooseCycle(existing, incoming) {
+  if (!existing) return incoming;
+  if (incoming.complete && !existing.complete) return incoming;
+  if (existing.complete && !incoming.complete) return existing;
+  return incoming;
+}
+
+function normalizeHistoryCycle(cycle) {
+  if (cycle?.actuator !== "pump" && cycle?.actuator !== "fan") return null;
+
+  const startedAt = cycle.started_at;
+  if (!startedAt) return null;
+
+  const cycleId = cycle.cycle_id == null ? null : String(cycle.cycle_id);
+  const endedAt = cycle.ended_at ?? null;
+  const complete = cycle.complete === true || endedAt != null;
+
+  return {
+    id: cycle.id ?? `cycle:${cycle.actuator}:${cycleId ?? startedAt}`,
+    actuator: cycle.actuator,
+    cycle_id: cycleId,
+    started_at: startedAt,
+    ended_at: complete ? endedAt : null,
+    duration_seconds:
+      cycle.duration_seconds == null || !Number.isFinite(Number(cycle.duration_seconds))
+        ? null
+        : Number(cycle.duration_seconds),
+    reason: cycle.reason ?? null,
+    complete,
+  };
+}
+
+/**
+ * Newest cycles for the home panel.
+ * Live events win when they describe the same run, except an open live cycle
+ * does not hide a completed warehouse cycle. Returns the newest `count` cycles
+ * when that many exist across both sources.
+ */
+export function selectDisplayedAutomationCycles(
+  events,
+  historyCycles = [],
+  { count = MIN_DISPLAYED_AUTOMATION_CYCLES } = {}
+) {
+  const live = consolidateAutomationCycles(events, { limit: 100 }).map((cycle) => ({
+    ...cycle,
+    cycle_id: cycleIdFromDisplayId(cycle.id),
+  }));
+  const history = (Array.isArray(historyCycles) ? historyCycles : [])
+    .map(normalizeHistoryCycle)
+    .filter(Boolean);
+
+  const groups = [];
+  const keyToGroup = new Map();
+
+  const add = (cycle) => {
+    const keys = identityKeys(cycle);
+    let group = null;
+    for (const key of keys) {
+      if (keyToGroup.has(key)) {
+        group = keyToGroup.get(key);
+        break;
+      }
+    }
+
+    if (!group) {
+      group = { cycle };
+      groups.push(group);
+    } else {
+      group.cycle = chooseCycle(group.cycle, cycle);
+    }
+
+    for (const key of new Set([...keys, ...identityKeys(group.cycle)])) {
+      keyToGroup.set(key, group);
+    }
+  };
+
+  for (const cycle of history) add(cycle);
+  for (const cycle of live) add(cycle);
+
+  const merged = groups.map((group) => group.cycle);
+  merged.sort(
+    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+  );
+
+  const limit = Number.isFinite(count)
+    ? Math.max(0, count)
+    : MIN_DISPLAYED_AUTOMATION_CYCLES;
+  return merged.slice(0, limit);
+}
+
 /**
  * Collapse noisy command/state event streams into completed (or open) actuator cycles.
  */

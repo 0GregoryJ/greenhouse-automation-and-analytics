@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import {
-  consolidateAutomationCycles,
   formatCycleHeadline,
+  MIN_DISPLAYED_AUTOMATION_CYCLES,
+  selectDisplayedAutomationCycles,
 } from "../../lib/automationCycles.js";
 import { formatAutomationTime } from "../../lib/automationDisplay.js";
 import { IconArrowUpRight, IconDroplet, IconFan } from "../layout/NavIcons.jsx";
@@ -13,6 +14,8 @@ function ActuatorIcon({ actuator }) {
 
 export function RecentAutomations({
   events,
+  historyCycles = [],
+  historyStatus = "idle",
   status,
   error,
   now,
@@ -20,10 +23,13 @@ export function RecentAutomations({
   onOpenAnalytics,
 }) {
   const cycles = useMemo(
-    () => consolidateAutomationCycles(events, { limit: 8 }),
-    [events]
+    () => selectDisplayedAutomationCycles(events, historyCycles),
+    [events, historyCycles]
   );
   const loaded = status !== "loading" || events.length > 0;
+  const awaitingHistory =
+    historyStatus === "loading" &&
+    cycles.length < MIN_DISPLAYED_AUTOMATION_CYCLES;
 
   return (
     <section
@@ -34,7 +40,7 @@ export function RecentAutomations({
       <header className="auto-panel-head">
         <div className="auto-panel-heading">
           <h2>Recent automations</h2>
-          <p className="auto-panel-copy">Latest fan and pump cycles</p>
+          <p className="auto-panel-copy">Last 5 fan and pump cycles</p>
         </div>
         {typeof onOpenAnalytics === "function" && (
           <button
@@ -49,21 +55,21 @@ export function RecentAutomations({
         )}
       </header>
 
-      {error && cycles.length === 0 && (
+      {error && cycles.length === 0 && !awaitingHistory && (
         <p className="auto-empty" role="status">
           Automation feed unavailable.
         </p>
       )}
 
-      {!loaded && !error && (
+      {((!loaded && !error) || (awaitingHistory && cycles.length === 0)) && (
         <ul className="auto-list" aria-hidden="true">
-          {Array.from({ length: 4 }, (_, index) => (
+          {Array.from({ length: MIN_DISPLAYED_AUTOMATION_CYCLES }, (_, index) => (
             <li key={index} className="auto-item auto-item-skeleton" />
           ))}
         </ul>
       )}
 
-      {loaded && cycles.length === 0 && !error && (
+      {loaded && cycles.length === 0 && !error && !awaitingHistory && (
         <p className="auto-empty">No automation cycles yet.</p>
       )}
 

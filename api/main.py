@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.history import router as history_router
 from api.routes.environment import router as environment_router
+from api.routes.metrics import router as metrics_router
 from api.services.moisture_reading_transform import transform_moisture_readings
 
 
@@ -106,6 +107,7 @@ app.add_middleware(
 
 app.include_router(history_router)
 app.include_router(environment_router)
+app.include_router(metrics_router)
 
 # ---------------------------------------------------------------------
 # Health check

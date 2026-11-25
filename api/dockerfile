@@ -1,3 +1,4 @@
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -5,26 +6,28 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install API dependencies.
+# Install git while running as root.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install API and dbt dependencies.
 COPY requirements/api.txt requirements.txt
 COPY requirements/dbt.txt dbt-requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r dbt-requirements.txt
 
-
-# Copy the FastAPI application and shared scoring config.
+# Copy the FastAPI application, shared config, and dbt project.
 COPY api/ ./api/
 COPY config/ ./config/
-copy warehouse/ ./warehouse/
+COPY warehouse/ ./warehouse/
 
-# Run as a non-root user.
-RUN useradd --create-home appuser
+# Create a non-root user and grant ownership of application files.
+RUN useradd --create-home appuser && \
+    chown -R appuser:appuser /app
+
 USER appuser
 
-# Install git.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git && \
-    rm -rf /var/lib/apt/lists/*
 EXPOSE 8000
 
 # Start the FastAPI server.

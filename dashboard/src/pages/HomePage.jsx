@@ -3,6 +3,7 @@ import { AiAnalystPanel } from "../components/ai/AiAnalystPanel.jsx";
 import { RecentAutomations } from "../components/automation/RecentAutomations.jsx";
 import { ReadingCard, SkeletonCards } from "../components/live/ReadingCard.jsx";
 import { ScoreCard } from "../components/live/ScoreCard.jsx";
+import { useAutomationCycleBackfill } from "../hooks/useAutomationCycleBackfill.js";
 import { useAutomationEvents } from "../hooks/useAutomationEvents.js";
 import { useEnvironmentalScore } from "../hooks/useEnvironmentalScore.js";
 import { formatAge } from "../lib/format.js";
@@ -62,6 +63,12 @@ export function HomePage({
     status: automationStatus,
     error: automationError,
   } = useAutomationEvents({ enabled: true });
+
+  const { historyCycles, historyStatus } = useAutomationCycleBackfill({
+    gatewayId: resolvedGatewayId,
+    events,
+    enabled: automationStatus !== "loading",
+  });
 
   const aiPanelRef = useRef(null);
   const [automationsHeight, setAutomationsHeight] = useState(null);
@@ -136,13 +143,15 @@ export function HomePage({
         </div>
         <RecentAutomations
           events={events}
+          historyCycles={historyCycles}
+          historyStatus={historyStatus}
           status={automationStatus}
           error={automationError}
           now={now}
           onOpenAnalytics={onOpenAutomationAnalytics}
           style={
             automationsHeight
-              ? { height: `${automationsHeight}px` }
+              ? { minHeight: `${automationsHeight}px` }
               : undefined
           }
         />
