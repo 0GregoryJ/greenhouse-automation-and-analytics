@@ -31,15 +31,19 @@ export function AboutPage() {
             <strong>History</strong> — Hourly and daily warehouse aggregates via
             dbt marts.
           </li>
+          <li>
+            <strong>Analyst</strong> — Natural-language questions answered from
+            governed dbt MetricFlow metrics, with the generated SQL on request.
+          </li>
         </ul>
         <p className="about-note">
           Source code:{" "}
           <a
-            href="https://github.com/0GregoryJ/greenhouse-iot-streaming-pipeline"
+            href="https://github.com/0GregoryJ/greenhouse-automation-and-analytics"
             target="_blank"
             rel="noreferrer"
           >
-            github.com/0GregoryJ/greenhouse-iot-streaming-pipeline
+            github.com/0GregoryJ/greenhouse-automation-and-analytics
           </a>
         </p>
       </div>

@@ -1,6 +1,6 @@
 # Semantic layer (dbt MetricFlow)
 
-A governed set of metrics and dimensions over the existing Snowflake marts. It is the foundation for a future natural-language analyst: the analyst discovers metrics, queries them with filters and groupings, and shows the SQL MetricFlow generated. Nothing here calls an LLM, the API, or the dashboard.
+A governed set of metrics and dimensions over the existing Snowflake marts. It backs the AI analyst: the API exposes it through `/api/metrics` and `POST /api/analyst/query` ([API reference](../../docs/api.md#governed-metrics-metricflow)), the analyst picks metrics from an approved catalog, queries them with groupings and a date range, and shows the SQL MetricFlow generated. The dbt project itself calls no LLM; that happens in the API.
 
 - Spec: dbt's legacy semantic-model YAML (`semantic_models:` with `measures:`), the format supported by the installed dbt Core 1.12.7 and MetricFlow 0.214.0.
 - Definitions: [`models/marts/semantic/`](../models/marts/semantic/).
@@ -182,7 +182,7 @@ Values seen in the data today:
 ```bash
 # from the repository root
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements/metricflow.txt     # dbt-snowflake (pinned) + dbt-metricflow
+pip install -r requirements/dbt.txt            # dbt-snowflake + dbt-metricflow (pinned)
 
 cd warehouse
 export DBT_PROFILES_DIR=~/.dbt     # mf looks in the current directory by default; dbt looks in ~/.dbt
@@ -195,7 +195,7 @@ mf validate-configs
 
 `dbt parse` already validates the semantic manifest (names, entities, filters, derived inputs). `mf validate-configs` additionally checks every semantic model, dimension, entity, measure and metric against the live warehouse.
 
-GitHub Actions needs no change: the `dbt build --target prod` step parses and validates the semantic YAML and builds the new models. `requirements/dbt.txt` is unchanged; MetricFlow's CLI is only needed for interactive use, via `requirements/metricflow.txt`. Optionally add a `pip install -r requirements/metricflow.txt && mf validate-configs` step.
+The GitHub Actions `dbt build --target prod` step parses and validates the semantic YAML and builds the models. `requirements/dbt.txt` includes `dbt-metricflow`, which the API image also installs so the analyst can run `mf` in the container. Optionally add an `mf validate-configs` step to CI.
 
 ## 7. Example queries
 
@@ -242,7 +242,7 @@ mf query --metrics pump_cycle_count --group-by metric_time__day --explain
 mf query --metrics avg_temperature_c --group-by metric_time__day --show-dataflow-plan --explain
 ```
 
-The reading-weighted average compiles to `SUM(avg_value * reading_count)` divided by `NULLIF(SUM(reading_count), 0)`. Count metrics left-join the time spine and wrap the result in `COALESCE(..., 0)`. For a "See SQL" feature, call the same explain path programmatically or run the CLI with `--explain` and capture the SQL.
+The reading-weighted average compiles to `SUM(avg_value * reading_count)` divided by `NULLIF(SUM(reading_count), 0)`. Count metrics left-join the time spine and wrap the result in `COALESCE(..., 0)`. The analyst's "Show SQL" uses this path: `compile_metricflow_sql` in [`api/services/metricflow.py`](../../api/services/metricflow.py) runs the validated query with `--explain` and returns the SQL after the marker.
 
 ## 9. Adding a metric
 
@@ -255,6 +255,12 @@ The reading-weighted average compiles to `SUM(avg_value * reading_count)` divide
 7. If the measure needs a column the marts lack, extend the mart with an appended column and add a dbt test. Do not change grains.
 
 ## 10. Notes for the AI analyst
+
+**Current implementation.** [`api/services/analyst.py`](../../api/services/analyst.py) offers the model the hand-maintained catalog in [`api/analyst_catalog.json`](../../api/analyst_catalog.json) (metric names, descriptions, compatible dimensions), validates its plan, and calls `POST /api/metrics/query`, which runs `mf query --metrics … --group-by … --start-time … --end-time … --limit …`. Known gaps against the guidance below:
+
+- It passes `--end-time`, which this MetricFlow version renders as a date and so drops the last day of a range (section 5). Moving the range into a `metric_time` `--where` filter would fix it.
+- It runs through the existing FastAPI service with the dbt profile's credentials, not a separate read-only service role.
+- The catalog file is not generated from the semantic manifest, so new metrics must be added to it by hand.
 
 - **Discovery:** list metrics, but hide those with `config.meta.role == building_block`. Descriptions and `label` are written for an LLM. Pull dimensions per metric with `mf list dimensions --metrics <name>` and do not offer dimensions from a different model, since MetricFlow will reject them.
 - **Always express the date range as its own `metric_time` filter at the grouping grain** (never `end_time`; see section 5) and group by `metric_time__<grain>`. Resolve "yesterday", "this week" and "last month" to UTC dates before calling MetricFlow.

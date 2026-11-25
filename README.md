@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.png" alt="Greenhouse IoT Streaming Pipeline" width="100%">
+  <img src="docs/assets/header.png" alt="Greenhouse Automation and Analytics" width="100%">
 </p>
 
 <p align="center">
@@ -15,14 +15,16 @@
   <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white">
   <img alt="Caddy" src="https://img.shields.io/badge/Caddy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white">
   <img alt="AWS" src="docs/assets/badges/aws.svg">
+  <img alt="Snowflake" src="https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white">
   <img alt="dbt" src="docs/assets/badges/dbt.svg">
+  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white">
   <img alt="Tailscale" src="https://img.shields.io/badge/Tailscale-242424?style=for-the-badge&logo=tailscale&logoColor=white">
   <img alt="GitHub Actions" src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
 </p>
 
-# Greenhouse IoT Streaming Pipeline
+# Greenhouse Automation and Analytics
 
-An end-to-end streaming pipeline and local automation system for a greenhouse. An ESP32 publishes temperature, humidity, pressure, and soil-moisture readings over MQTT to a Raspberry Pi, which validates and buffers them in SQLite before forwarding them to Kafka on AWS. The same Pi runs a controller that switches a fan and an irrigation pump (Shelly smart plugs) from those readings and publishes every action as an event. Live consumers feed Redis for a React dashboard; a historical consumer archives both streams to S3, and tested dbt models in Snowflake power analytics for sensors, a conditions score, and actuator cycles.
+A greenhouse automation an analytics system that translates real-time soil moisture, air temperature, atmospheric pressure, and relative humidity readings ito automated irrigation and ventilation, as well as AI-powered analytics. An ESP32 microcontroller publishes readings over MQTT to a Raspberry Pi, which triggers irrigation and ventilation via an MQTT-connected pump and fan when temperature and soil moisture cross configured thresholds. The same Pi buffers data in a SQLite outbox, publishing pending events to Kafka on AWS over Tailscale with at-least-once delivery. A Redis database feeds the live dashboard, and S3 holds the permanent archive. Snowflake + dbt + MetricFlowproduce tested data models and metrics, and an AI analayst answers natural-language questions by querying MetricFlow's governed metrics.
 
 **Live:** [Dashboard](https://greenhouse.gregoryjoshua.com) · [API health](https://api.gregoryjoshua.com/health)
 
@@ -49,7 +51,8 @@ flowchart LR
   end
 
   snow[("Snowflake")]
-  dbt["dbt marts<br/>sensors, score, cycles"]
+  dbt["dbt marts + MetricFlow<br/>sensors, score, cycles"]
+  llm["OpenAI<br/>plan + summarize"]
   dash["React dashboard"]
 
   esp -->|"MQTT QoS 1"| mqtt
@@ -61,6 +64,7 @@ flowchart LR
   s3 --> snow
   snow --> dbt
   dbt --> api
+  api <-->|"AI analyst"| llm
   dash -->|"HTTPS"| api
 
   ingest -.-> dlq[("Rejected events")]
@@ -82,6 +86,7 @@ Solid boxes are implemented. Dashed boxes are on the [roadmap](#roadmap). Detail
 6. The historical consumer batches both Kafka topics into gzip JSON Lines objects in S3 and commits only after the upload. Malformed messages are quarantined in S3 rather than blocking the stream.
 7. Snowflake tasks load S3 into `RAW`; dbt deduplicates on `event_id` and builds staging, intermediate, and mart models.
 8. FastAPI serves live data from Redis and history from Snowflake marts. The dashboard polls the API.
+9. The AI analyst turns a question into a MetricFlow query, validates it against an approved catalog, runs it, and returns an explanation, chart data, and the compiled SQL.
 
 Delivery is at-least-once, with deduplication by `event_id`.
 
@@ -106,13 +111,17 @@ The sensor's raw capacitance is noisy, so the calibrated value is the percentage
 
 A versioned, rules-based **0–100** suitability score (`conditions-v2`) from air temperature, relative humidity, and calibrated soil moisture. It measures alignment with configured growing targets, **not** verified plant health. Live scores come from Redis via FastAPI; historical scores come from dbt hourly and daily marts. Rules live in [`config/environmental_score.v1.json`](config/environmental_score.v1.json) and feed both the Python scorer and the dbt seed. Methodology: [Environmental Conditions Score](docs/environmental-conditions-score.md).
 
+### AI analyst
+
+`POST /api/analyst/query` takes a plain-English question. OpenAI proposes a structured query plan (metrics, grouping, date range, chart type), which is rejected unless every metric and dimension is in [`api/analyst_catalog.json`](api/analyst_catalog.json). MetricFlow runs the approved query against the dbt semantic layer in Snowflake and compiles its SQL; OpenAI then summarizes only the returned rows. The model never writes SQL or touches the warehouse directly. The dashboard shows the answer, a chart, observations and caveats, and the generated SQL on request. Metric definitions: [Semantic layer](warehouse/docs/semantic_layer.md).
+
 ### Dashboard
 
 | Page | Contents |
 | --- | --- |
-| Home | Live score, one card per sensor (calibrated moisture with state), recent fan and pump cycles; polls every 3–5 s and marks readings older than 30 s stale |
-| Analytics | Score history, sensor series, and automation overlays (sensor series with pump or fan cycles marked) for `24h` / `7d` / `30d` |
-| Control, AI analyst | Placeholders; manual overrides and the analyst are not wired up yet |
+| Home | Live score, one card per sensor (calibrated moisture with state), recent fan and pump cycles, and a shortcut to the analyst; polls every 3–5 s and marks readings older than 30 s stale |
+| Analytics | AI analyst workspace, then score history, sensor series, and automation overlays (sensor series with pump or fan cycles marked) for `24h` / `7d` / `30d` |
+| Control | Placeholder; manual overrides are not wired up yet |
 | About | Project overview |
 
 Warehouse data is refreshed on a schedule, so history can lag live data. See [API reference](docs/api.md) for endpoints.
@@ -125,12 +134,14 @@ Warehouse data is refreshed on a schedule, so history can lag live data. See [AP
 - **Versioned data contracts.** JSON Schemas for sensor (v1, v2) and automation (v1) events, validated at the gateway.
 - **Replayable streaming.** Two Kafka topics, two consumer groups: live Redis view and durable S3 archive with quarantine.
 - **Warehouse analytics.** S3 → Snowflake → dbt marts → FastAPI: sensor series, conditions score, actuator cycles.
+- **Governed AI.** LLM-planned queries constrained to a MetricFlow semantic layer, with validation, data-grounded summaries, and visible SQL.
 - **Operations and CI/CD.** systemd, Compose, pytest, dashboard lint/test/build, Tailscale/SSH deploys on `main`, scheduled dbt.
 - **Decision records.** [ADRs](docs/decisions/README.md) for the main design choices.
 
 ## Roadmap
 
-- **Control.** Dashboard manual overrides and a governed AI analyst (placeholders today).
+- **Control.** Dashboard manual overrides (placeholder today).
+- **Analyst.** Follow-up questions with conversation memory, an automation-impact model for cause-and-effect questions, and auth plus rate limiting on the analyst and metrics endpoints.
 - **Reliability.** Rejected-event store on the gateway; retention for the automation outbox; gateway input hardening.
 - **Security.** TLS for MQTT and Kafka; tighter MQTT ACLs.
 - **Observability.** External alerting, consumer-lag metrics, end-to-end synthetic probe; Flink rolling metrics.
@@ -142,7 +153,8 @@ Warehouse data is refreshed on a schedule, so history can lag live data. See [AP
 | Document | Contents |
 | --- | --- |
 | [Architecture](docs/architecture.md) | Components, event flow, data stores, delivery guarantees |
-| [API reference](docs/api.md) | Live, automation, history, and score endpoints |
+| [API reference](docs/api.md) | Live, automation, history, score, metrics, and analyst endpoints |
+| [Semantic layer](warehouse/docs/semantic_layer.md) | MetricFlow metrics, dimensions, caveats, example queries |
 | [Environmental Conditions Score](docs/environmental-conditions-score.md) | Scoring methodology, calibration, limitations |
 | [Snowflake setup](docs/snowflake-setup.md) | Warehouse bootstrap, S3 load tasks, roles, JWT users |
 | [Data contracts](docs/data-contracts.md) | Sensor and automation schemas, validation, safe evolution |
@@ -166,9 +178,9 @@ gateway/              Pi ingest, producer, automation controller, cleanup, healt
 schemas/              Versioned sensor and automation event schemas
 consumers/live/       Kafka to Redis consumer (latest, history, automation events)
 consumers/historical/ Kafka to S3 archive consumer (both topics, quarantine)
-api/                  FastAPI service (Redis live data, Snowflake history)
+api/                  FastAPI service (live data, history, MetricFlow, AI analyst)
 config/               Versioned environmental score rules (JSON)
-warehouse/            dbt project (staging, intermediate, marts, score seed)
+warehouse/            dbt project (staging, intermediate, marts, semantic layer, score seed)
 dashboard/            React / Vite dashboard (Home, Control, Analytics, About)
 infrastructure/       systemd, Mosquitto, Kafka, Caddy config and scripts
 tests/                pytest suites (schemas, gateway, automation, consumers, API)

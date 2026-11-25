@@ -47,10 +47,10 @@ Schema docs and tests: [`models/staging/staging.yml`](models/staging/staging.yml
 
 ## Semantic layer
 
-A dbt MetricFlow layer over these marts (38 reportable metrics across environmental conditions, environmental health, automation activity and automation reliability) lives in [`models/marts/semantic/`](models/marts/semantic/). Metric catalog, dimensions, caveats, local setup and example queries: [`docs/semantic_layer.md`](docs/semantic_layer.md).
+A dbt MetricFlow layer over these marts (38 reportable metrics across environmental conditions, environmental health, automation activity and automation reliability) lives in [`models/marts/semantic/`](models/marts/semantic/). It powers the API's `/api/metrics` endpoints and the AI analyst. Metric catalog, dimensions, caveats, local setup and example queries: [`docs/semantic_layer.md`](docs/semantic_layer.md).
 
 ```bash
-pip install -r ../requirements/metricflow.txt
+pip install -r ../requirements/dbt.txt
 export DBT_PROFILES_DIR=~/.dbt
 mf validate-configs
 mf query --metrics pump_cycle_count --group-by metric_time__day

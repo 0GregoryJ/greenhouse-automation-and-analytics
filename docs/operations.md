@@ -328,6 +328,35 @@ sudo docker compose logs --tail 100 api
 
 Live endpoints keep working when Snowflake is down. History and score-history are on-demand and are not part of `/health`.
 
+## AI analyst and MetricFlow
+
+The analyst and the `/api/metrics` endpoints run inside the API container and are not part of `/health`. On the serving host:
+
+```bash
+# MetricFlow can reach Snowflake through the mounted dbt profile?
+sudo docker compose exec api sh -c 'cd /app/warehouse && mf list metrics | head'
+
+# Analyst env present (names only)
+sudo docker compose exec api printenv | grep -E '^(OPENAI_|ANALYST_|METRICS_|DBT_)' | cut -d= -f1
+
+# End-to-end
+curl -s -X POST http://127.0.0.1:8000/api/analyst/query \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How many pump cycles ran each day this week?"}' | python3 -m json.tool
+```
+
+| Observation | Cause and action |
+| --- | --- |
+| Metrics endpoints return 503 | `mf` failed. `docker compose logs api` shows the exit code. Usual causes: `profiles.yml` missing from the host `~/.dbt` mount, wrong `DBT_TARGET`, or Snowflake credentials in the profile |
+| Analyst 422 `Cannot load analyst catalog` | `ANALYST_CATALOG_PATH` does not point to a readable JSON file in the container (default `/app/api/analyst_catalog.json`) |
+| Analyst 422 with a reason such as "No supported metric" | The model could not map the question to approved metrics, or the plan failed validation. Expected for out-of-scope questions |
+| Analyst 422 `Metrics API query failed` | The loopback call to `METRICS_API_URL` failed; check the metrics endpoint directly |
+| Analyst 500 | OpenAI error (invalid key, quota, or timeout). Check `OPENAI_API_KEY` and the API logs |
+| `sql` is `null` with `sql_error` set | `mf query --explain` failed or its output format changed; the answer and data are still valid |
+| Analyst says a metric does not exist that `mf list metrics` shows | The catalog in `api/analyst_catalog.json` is maintained by hand; add the metric and its dimensions there |
+| Dashboard analyst shows "Can't reach the analyst service" | Network or CORS. `CORS_ORIGINS` must include the dashboard origin and the API must allow `POST` |
+| New semantic metrics missing | The semantic manifest is baked into the API image. Rebuild the `api` container after semantic YAML changes |
+
 ## Automation controller
 
 The controller is `greenhouse-automation.service` on the Pi. It needs Mosquitto and the two Shelly plugs; it does not need Kafka or the internet.

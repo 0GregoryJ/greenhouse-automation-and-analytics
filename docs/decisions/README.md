@@ -21,6 +21,7 @@ Architecture Decision Records (ADRs) capture a significant architectural decisio
 | [0013](0013-snowflake-history-api-with-jwt-key.md) | Snowflake history API with JWT key-pair auth | Accepted |
 | [0014](0014-local-automation-controller-with-persistent-safety-ledger.md) | Local automation controller with a persistent safety ledger | Accepted |
 | [0015](0015-automation-events-as-a-second-stream.md) | Automation events as a second stream, with quarantine in the archive | Accepted |
+| [0016](0016-governed-ai-analyst-over-metricflow.md) | Governed AI analyst over a MetricFlow semantic layer | Accepted |
 
 ## Format
 

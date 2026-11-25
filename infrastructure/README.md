@@ -1,6 +1,6 @@
 # Infrastructure
 
-Infrastructure configurations, deployment scripts, and operational procedures for the **Greenhouse IoT Streaming Pipeline**.
+Infrastructure configurations, deployment scripts, and operational procedures for the **Greenhouse Automation and Analytics** project.
 
 The project uses a Raspberry Pi Zero 2 W as an edge gateway and local automation controller (fan and pump on Shelly smart plugs), two AWS EC2 instances for event streaming and live data services, and Netlify for the public React dashboard.
 

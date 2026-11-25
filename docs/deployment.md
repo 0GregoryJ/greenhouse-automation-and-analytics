@@ -128,7 +128,8 @@ No secret values are committed. `.env` and `firmware/esp32/config.py` are git-ig
 | --- | --- | --- |
 | `.env` on the Pi (from [`.env.example`](../.env.example)) | `ingest.py`, `kafka_producer.py` | `MQTT_USERNAME`, `MQTT_PASSWORD`, `KAFKA_BOOTSTRAP_SERVERS`, and optional `MQTT_PORT`, `MQTT_SENSOR_TOPIC`, `MQTT_AUTOMATION_TOPIC`, `KAFKA_TOPIC`, `KAFKA_AUTOMATION_TOPIC`, `KAFKA_BATCH_SIZE`, `KAFKA_RETRY_SECONDS`, `KAFKA_DELIVERY_TIMEOUT_MS` |
 | `.env` on the Pi (automation) | `automation.py` | `SHELLY_FAN_ID` and `SHELLY_PUMP_ID` (required: the MQTT topic prefixes the Shelly plugs are configured with; the process exits without them), `MQTT_HOST` (default `localhost`), `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_SENSOR_TOPIC`, `MQTT_AUTOMATION_TOPIC`. Thresholds and limits are constants at the top of the script |
-| `.env` on the serving host | `compose.yaml` | `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_KEY_HOST_PATH`, and `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` (required); Snowflake account settings (`SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA`); `KAFKA_TOPIC` (default `greenhouse.sensor-readings`), `KAFKA_AUTOMATION_TOPIC` (default `greenhouse.automation.events.v1`; forwarded to the live consumer only), `LIVE_KAFKA_CONSUMER_GROUP` (`greenhouse-live-dev`), `HISTORICAL_KAFKA_CONSUMER_GROUP` (`greenhouse-historical`), `HISTORICAL_BATCH_SIZE` (240), `HISTORICAL_FLUSH_SECONDS` (300), `S3_PREFIX` (`raw/sensor_events`), `AWS_REGION` (`us-east-2`), `CORS_ORIGINS` (default `http://localhost:5173`; include the dashboard origin in production) |
+| `.env` on the serving host | `compose.yaml` | `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_KEY_HOST_PATH`, and `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` (required); Snowflake account settings (`SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA`); `KAFKA_TOPIC` (default `greenhouse.sensor-readings`), `KAFKA_AUTOMATION_TOPIC` (default `greenhouse.automation.events.v1`; forwarded to the live consumer only), `LIVE_KAFKA_CONSUMER_GROUP` (`greenhouse-live-dev`), `HISTORICAL_KAFKA_CONSUMER_GROUP` (`greenhouse-historical`), `HISTORICAL_BATCH_SIZE` (240), `HISTORICAL_FLUSH_SECONDS` (300), `S3_PREFIX` (`raw/sensor_events`), `AWS_REGION` (`us-east-2`), `CORS_ORIGINS` (default `http://localhost:5173`; include the dashboard origin in production); AI analyst: `OPENAI_API_KEY` (required, Compose refuses to start without it), `OPENAI_MODEL` (default `gpt-5.5`), `ANALYST_CATALOG_PATH` (default `/app/api/analyst_catalog.json`), `METRICS_API_URL` (default loopback `http://127.0.0.1:8000/api/metrics/query`), optional `METRICS_API_TOKEN` |
+| `~/.dbt/profiles.yml` on the serving host | MetricFlow in the API container | dbt profile `warehouse` with Snowflake credentials; Compose mounts `/home/ubuntu/.dbt` read-only at `/app/.dbt` and sets `DBT_TARGET=dev` |
 | `.env` on a Mac | `simulate.py` | `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_TOPIC` (the simulator still reads `MQTT_TOPIC`; the gateway reads `MQTT_SENSOR_TOPIC`, so set both to the same value if you override it) |
 | `/etc/mosquitto/passwd` on the Pi | Mosquitto | Password hashes, created with `mosquitto_passwd` |
 | `firmware/esp32/config.py` (from `config.example.py`) | ESP32 | Wi-Fi and MQTT credentials, Pi LAN address, `GATEWAY_ID`, sensor IDs, sample interval |
@@ -140,7 +141,7 @@ Notes:
 
 - `ingest.py` runs beside Mosquitto and always connects to `localhost`. It reads `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_PORT` (default 1883), `MQTT_SENSOR_TOPIC` (default `greenhouse/telemetry`), and `MQTT_AUTOMATION_TOPIC` (default `greenhouse/automation/events`); a blank value uses the default. `MQTT_HOST` is used by the simulator and the automation controller (default `localhost`) only.
 - The historical consumer's automation topic (`KAFKA_AUTOMATION_TOPIC`), `S3_AUTOMATION_PREFIX` (default `raw/automation_events`), and `S3_QUARANTINE_PREFIX` (default `raw/quarantine`) are read by the container but not forwarded by `compose.yaml`, so they run with those defaults. Add them to the service's `environment` block to override them.
-- `.env.example` is grouped by host and pre-fills the application defaults (topics, consumer groups, batch sizes, flush interval, S3 prefix, region, CORS origin, Snowflake placeholders). Credentials, `MQTT_HOST`, `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_KEY_HOST_PATH`, and `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` need real values on the hosts that use them. A blank value counts as set, so delete a line rather than leaving it empty (`KAFKA_BATCH_SIZE=` fails integer parsing).
+- `.env.example` is grouped by host and pre-fills the application defaults (topics, consumer groups, batch sizes, flush interval, S3 prefix, region, CORS origin, Snowflake placeholders). Credentials, `MQTT_HOST`, `KAFKA_BOOTSTRAP_SERVERS`, `S3_BUCKET`, `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_KEY_HOST_PATH`, `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE`, and `OPENAI_API_KEY` need real values on the hosts that use them. A blank value counts as set, so delete a line rather than leaving it empty (`KAFKA_BATCH_SIZE=` fails integer parsing).
 - Compose mounts `SNOWFLAKE_KEY_HOST_PATH` read-only into the API container at `/run/secrets/snowflake_api_key.pem` and sets `SNOWFLAKE_PRIVATE_KEY_PATH` to that path. The PEM must exist on the host before `docker compose up` and be readable by the container user (`appuser`). Prefer `chmod 644` on a dedicated key file, or ownership that Docker can read.
 - `.env` is read when a process starts. After editing it, restart the service (`systemctl restart …`) or recreate containers (`docker compose up -d`).
 - Mosquitto uses one password file; a separate account per device keeps credentials individually revocable.
@@ -148,12 +149,12 @@ Notes:
 
 ## Raspberry Pi gateway
 
-Repository path used by the unit files: `/home/greenhousepi/greenhouse-iot-streaming-pipeline`, user and group `greenhousepi`.
+Repository path used by the unit files: `/home/greenhousepi/greenhouse-iot-streaming-pipeline`, user and group `greenhousepi`. The checkout directory keeps that name (from before the repository was renamed to `greenhouse-automation-and-analytics`) because the unit files and the CI deploy job use it; clone into it explicitly.
 
 ### Initial setup
 
 ```bash
-git clone https://github.com/0GregoryJ/greenhouse-iot-streaming-pipeline.git
+git clone https://github.com/0GregoryJ/greenhouse-automation-and-analytics.git greenhouse-iot-streaming-pipeline
 cd greenhouse-iot-streaming-pipeline
 
 python3 -m venv .venv
@@ -307,19 +308,21 @@ bash infrastructure/scripts/verify-deployment.sh kafka
 
 ## Serving host (EC2 #2)
 
-Docker Compose runs `redis` (`redis:7-alpine`, AOF persistence, volume `redis_data`), `live-consumer`, `historical-consumer`, and `api` (published only on `127.0.0.1:8000`). All four use `restart: unless-stopped`; the historical consumer has a 60 s `stop_grace_period` so it can upload and commit pending batches on shutdown. The API container mounts the Snowflake RSA key from `SNOWFLAKE_KEY_HOST_PATH` and installs `snowflake-connector-python` from [`requirements/api.txt`](../requirements/api.txt). Caddy runs on the host under systemd.
+Docker Compose runs `redis` (`redis:7-alpine`, AOF persistence, volume `redis_data`), `live-consumer`, `historical-consumer`, and `api` (published only on `127.0.0.1:8000`). All four use `restart: unless-stopped`; the historical consumer has a 60 s `stop_grace_period` so it can upload and commit pending batches on shutdown. The API container mounts the Snowflake RSA key from `SNOWFLAKE_KEY_HOST_PATH` and the host's dbt profile directory, installs [`requirements/api.txt`](../requirements/api.txt) (FastAPI, Snowflake connector, OpenAI) and [`requirements/dbt.txt`](../requirements/dbt.txt) (dbt-snowflake, dbt-metricflow), and copies the dbt project so the AI analyst can run MetricFlow. Caddy runs on the host under systemd.
 
 ### Initial setup
 
 Requirements: Docker with Compose, Tailscale (the consumers reach Kafka over it), Caddy, a DNS name for the API, ports 80 and 443 open publicly, an S3 bucket, Snowflake account access for the API user, the RSA private key on disk, and an IAM instance profile on the instance that allows `s3:PutObject` on `arn:aws:s3:::<bucket>/raw/sensor_events/*`, `raw/automation_events/*`, and `raw/quarantine/*`. The historical consumer obtains AWS credentials from the instance metadata service inside its container. With IMDSv2 this needs the instance's metadata hop limit set to 2 (`aws ec2 modify-instance-metadata-options --instance-id <id> --http-put-response-hop-limit 2`), because Docker's bridge network adds a network hop. For CI deploys, the deploy user must be able to run `docker compose` without `sudo` (for example by membership in the `docker` group).
 
 ```bash
-git clone https://github.com/0GregoryJ/greenhouse-iot-streaming-pipeline.git
+git clone https://github.com/0GregoryJ/greenhouse-automation-and-analytics.git greenhouse-iot-streaming-pipeline
 cd greenhouse-iot-streaming-pipeline
 cp .env.example .env      # set KAFKA_BOOTSTRAP_SERVERS, S3_BUCKET, AWS_REGION, CORS_ORIGINS,
-                         # Snowflake account vars, SNOWFLAKE_KEY_HOST_PATH, passphrase
+                         # Snowflake account vars, SNOWFLAKE_KEY_HOST_PATH, passphrase, OPENAI_API_KEY
 # Ensure the PEM exists and is readable by Docker, for example:
 #   chmod 644 "$SNOWFLAKE_KEY_HOST_PATH"
+# MetricFlow needs a dbt profile named "warehouse" at /home/ubuntu/.dbt/profiles.yml
+# (see docs/snowflake-setup.md), readable by the container user.
 sudo docker compose config --quiet
 sudo docker compose up -d --build
 ```
@@ -336,7 +339,7 @@ dbt deps   # if you add packages later
 dbt build
 ```
 
-Operator notes: [Snowflake setup](snowflake-setup.md) (database, S3 integration, load task, API/dbt JWT users), [Warehouse README](../warehouse/README.md). The API image must include [`config/`](../config/) (copied in [`api/dockerfile`](../api/dockerfile)) for live scoring.
+Operator notes: [Snowflake setup](snowflake-setup.md) (database, S3 integration, load task, API/dbt JWT users), [Warehouse README](../warehouse/README.md). The API image must include [`config/`](../config/) (copied in [`api/dockerfile`](../api/dockerfile)) for live scoring, and [`warehouse/`](../warehouse/) for MetricFlow. Rebuild the `api` container after semantic-layer changes so the analyst sees them, and keep [`api/analyst_catalog.json`](../api/analyst_catalog.json) in step with the metrics it should offer.
 
 Keep the API's `SNOWFLAKE_SCHEMA` aligned with the schema where mart tables are built (default `GREENHOUSE_DBT_MARTS`).
 
@@ -384,7 +387,7 @@ The React/Vite app in [`dashboard/`](../dashboard/) is deployed from Git by Netl
 
 The API origin is resolved in [`dashboard/src/api/config.js`](../dashboard/src/api/config.js) from `VITE_API_URL` or `VITE_API_BASE_URL`, defaulting to `https://api.gregoryjoshua.com`. Set the env var in Netlify (or a local `.env`) to point at another API. The API lists the dashboard origin in `CORS_ORIGINS`, and `http://localhost:5173` (the default) allows local development against the production API.
 
-The Home page polls `/api/v1/sensors/latest` (3 s), `/api/v1/environment/score/current`, and `/api/v1/automation/events/recent` (5 s). The Analytics page charts environmental-score history, `/api/v1/history/series`, or `/api/v1/history/automations` (Snowflake). Control and the AI analyst are placeholders. Gateways and sensors for pickers come from the live endpoint, so warehouse-only devices do not appear until a metadata endpoint exists.
+The Home page polls `/api/v1/sensors/latest` (3 s), `/api/v1/environment/score/current`, and `/api/v1/automation/events/recent` (5 s). The Analytics page sends analyst questions to `POST /api/analyst/query` and charts environmental-score history, `/api/v1/history/series`, or `/api/v1/history/automations` (Snowflake). Control is a placeholder. Gateways and sensors for pickers come from the live endpoint, so warehouse-only devices do not appear until a metadata endpoint exists.
 
 ```bash
 cd dashboard

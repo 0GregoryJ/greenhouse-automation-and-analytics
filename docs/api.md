@@ -1,10 +1,10 @@
 # Greenhouse Monitoring API
 
-Read-only FastAPI service on the serving host. Live readings, the live score, and recent automation events come from Redis; historical series, score history, and automation history come from Snowflake dbt models. Public HTTPS is terminated by Caddy.
+FastAPI service on the serving host. Live readings, the live score, and recent automation events come from Redis; historical series, score history, and automation history come from Snowflake dbt models; governed metric queries and the AI analyst go through dbt MetricFlow. Every endpoint is read-only with respect to the data (the `POST` endpoints run queries; they change nothing). Public HTTPS is terminated by Caddy.
 
 Base URL (production): `https://api.gregoryjoshua.com`
 
-CORS allow-list: `CORS_ORIGINS` (see [`.env.example`](../.env.example)).
+CORS: origins from `CORS_ORIGINS` (see [`.env.example`](../.env.example)); methods `GET` and `POST`.
 
 ## Health
 
@@ -253,8 +253,109 @@ curl -s "https://api.gregoryjoshua.com/api/v1/environment/score/history?gateway_
 
 ---
 
+## Governed metrics (MetricFlow)
+
+Thin adapter over the MetricFlow CLI (`mf`) in the API container ([`api/services/metricflow.py`](../api/services/metricflow.py)). Metric and dimension names are checked against MetricFlow's own catalog before any query runs, and `mf` is invoked without a shell. Definitions and caveats: [Semantic layer](../warehouse/docs/semantic_layer.md).
+
+These endpoints have no authentication today. They are bounded (at most 5 metrics, 5 dimensions, 500 rows, a 366-day range) but each query costs Snowflake compute.
+
+### `GET /api/metrics`
+
+Metric catalog: `{ "metrics": [{ "name", "description" }] }`. Cached for `MF_CATALOG_TTL_SECONDS` (300).
+
+### `GET /api/metrics/{metric_name}/dimensions`
+
+Queryable dimensions for one metric: `{ "metric", "dimensions": [] }`.
+
+### `POST /api/metrics/query`
+
+```json
+{
+  "metrics": ["avg_soil_moisture_pct"],
+  "group_by": ["metric_time__day"],
+  "start_time": "2026-11-17",
+  "end_time": "2026-11-24",
+  "limit": 100,
+  "order_by": ["metric_time__day"]
+}
+```
+
+**200** — the query echoed back plus `columns`, `rows` (objects keyed by column), and `row_count`.
+
+**422** — unknown metric or dimension, invalid identifier, bad dates (`YYYY-MM-DD`, not in the future), or limits exceeded.  
+**503** — MetricFlow failed or timed out (`MF_TIMEOUT_SECONDS`, default 90); details are logged, not returned.
+
+---
+
+## AI analyst
+
+### `POST /api/analyst/query`
+
+Answers one natural-language question ([`api/services/analyst.py`](../api/services/analyst.py)). There is no conversation memory; each request is independent.
+
+1. OpenAI (`OPENAI_MODEL`) proposes a structured plan: up to 3 metrics, up to 2 dimensions, a date range, a row limit, and a chart type.
+2. The plan is validated against the approved catalog in [`api/analyst_catalog.json`](../api/analyst_catalog.json) (`ANALYST_CATALOG_PATH`), including per-metric dimension compatibility, a 366-day window, and no future dates.
+3. The approved query runs through `POST /api/metrics/query` (`METRICS_API_URL`, the API calling itself on loopback).
+4. MetricFlow compiles the same query to SQL with `mf query --explain`.
+5. OpenAI writes the answer, highlights, and caveats from the returned rows only. With no rows, a fixed "no data" answer is returned without a second model call.
+
+**Request**
+
+```json
+{ "question": "How has average soil moisture changed over the past 7 days?" }
+```
+
+`question` is 3–1000 characters.
+
+**200**
+
+```json
+{
+  "question": "How has average soil moisture changed over the past 7 days?",
+  "answer": "Average soil moisture fell from 61% to 55% over the week…",
+  "highlights": ["Lowest day: Nov 22 at 48.2%"],
+  "caveats": ["Calibrated moisture is a proxy, not volumetric water content."],
+  "query": {
+    "metrics": ["avg_soil_moisture_pct"],
+    "group_by": ["metric_time__day"],
+    "start_time": "2026-11-17",
+    "end_time": "2026-11-24",
+    "limit": 100
+  },
+  "visualization": {
+    "type": "line",
+    "title": "Average Soil Moisture",
+    "xKey": "METRIC_TIME__DAY",
+    "series": [{ "dataKey": "AVG_SOIL_MOISTURE_PCT", "label": "avg_soil_moisture_pct" }],
+    "columns": ["METRIC_TIME__DAY", "AVG_SOIL_MOISTURE_PCT"],
+    "rows": [{ "METRIC_TIME__DAY": "2026-11-24 00:00:00", "AVG_SOIL_MOISTURE_PCT": 54.93 }]
+  },
+  "sql": "SELECT …",
+  "sql_error": null,
+  "source": "governed_metricflow"
+}
+```
+
+- `visualization.type` is `line`, `bar`, `table`, or `none` (no rows). A line or bar plan without a grouping dimension falls back to `table`. Rows grouped by `metric_time` are sorted chronologically. Timestamps without an offset are UTC.
+- `series[].label` is the raw metric name; the dashboard humanizes it.
+- `sql` is `null` when compilation fails, with `sql_error` set. The answer is still returned.
+
+**422** — the question is out of range, the model marked it unanswerable with the approved metrics, the plan failed validation, or the metrics query failed. `detail` is a readable reason.  
+**500** — an OpenAI error (network, quota, timeout after one retry) is not mapped to a specific status yet.
+
+```bash
+curl -s -X POST https://api.gregoryjoshua.com/api/analyst/query \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How many times did the pump run each day this week?"}' | python3 -m json.tool
+```
+
+A request makes two OpenAI calls and one or two MetricFlow runs, so expect several seconds to tens of seconds. There is no authentication or rate limiting yet.
+
+---
+
 ## Related
 
+- [Semantic layer](../warehouse/docs/semantic_layer.md)
 - [Operations](operations.md)
 - [Snowflake setup](snowflake-setup.md) — S3 load task, marts schema, API reader and dbt service users
 - [Environmental Conditions Score](environmental-conditions-score.md)
