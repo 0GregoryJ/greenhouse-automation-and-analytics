@@ -19,11 +19,15 @@ from contextlib import asynccontextmanager
 import redis
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, Field
+
 
 from api.routes.history import router as history_router
 from api.routes.environment import router as environment_router
 from api.routes.metrics import router as metrics_router
 from api.services.moisture_reading_transform import transform_moisture_readings
+from api.services.analyst import GreenhouseAnalyst, AnalystError
 
 
 # ---------------------------------------------------------------------
@@ -261,4 +265,25 @@ def get_recent_automation_events():
         raise HTTPException(
             status_code=503,
             detail="Automation events are temporarily unavailable",
+        )
+
+# ---------------------------------------------------------------------
+#  AI Analyst questions POST
+# ---------------------------------------------------------------------
+class AnalystRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=1000)
+
+
+@app.post("/api/analyst/query")
+async def analyst_query(request: AnalystRequest):
+    try:
+        result = await run_in_threadpool(
+            GreenhouseAnalyst().ask,
+            request.question
+        )
+        return result
+    except AnalystError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc)
         )

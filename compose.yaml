@@ -63,6 +63,11 @@ services:
       DBT_LOG_PATH: /tmp
       DBT_TARGET: dev
 
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.5}
+      METRICS_API_URL: ${METRICS_API_URL:-http://127.0.0.1:8000/api/metrics/query}
+      ANALYST_CATALOG_PATH: ${ANALYST_CATALOG_PATH:-/app/api/analyst_catalog.json}
+
     volumes:
       # Host PEM from SNOWFLAKE_KEY_HOST_PATH; readable by the container user (appuser).
       - ${SNOWFLAKE_KEY_HOST_PATH:?Snowflake private key path required}:/run/secrets/snowflake_api_key.pem:ro

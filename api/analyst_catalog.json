@@ -1,0 +1,856 @@
+{
+    "metrics": [
+      {
+        "name": "automation_event_count",
+        "description": "Automation event count",
+        "dimensions": [
+          "automation_event__actuator",
+          "automation_event__desired_state",
+          "automation_event__event_type",
+          "automation_event__is_initial_observation",
+          "automation_event__measured_at_utc",
+          "automation_event__observed_state",
+          "automation_event__reason",
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "avg_command_acknowledgment_latency_seconds",
+        "description": "Avg command acknowledgment latency seconds",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "avg_environmental_score",
+        "description": "Avg environmental score",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ]
+      },
+      {
+        "name": "avg_fan_cycle_duration_seconds",
+        "description": "Avg fan cycle duration seconds",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "avg_humidity_pct",
+        "description": "Avg humidity pct",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "avg_humidity_score",
+        "description": "Avg humidity score",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ]
+      },
+      {
+        "name": "avg_moisture_score",
+        "description": "Avg moisture score",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ]
+      },
+      {
+        "name": "avg_pump_cycle_duration_seconds",
+        "description": "Avg pump cycle duration seconds",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "avg_soil_moisture_pct",
+        "description": "Avg soil moisture pct",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "avg_temperature_c",
+        "description": "Avg temperature c",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "celsius"
+      },
+      {
+        "name": "avg_temperature_score",
+        "description": "Avg temperature score",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ]
+      },
+      {
+        "name": "below_target_min_reading_count",
+        "description": "Below target min reading count",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "command_acknowledged_count",
+        "description": "Command acknowledged count",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "command_acknowledgment_rate_pct",
+        "description": "Command acknowledgment rate pct",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "command_failure_count",
+        "description": "Command failure count",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "command_issued_count",
+        "description": "Command issued count",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "command_timeout_count",
+        "description": "Command timeout count",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "environmental_score_coverage_pct",
+        "description": "Environmental score coverage pct",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "environmental_score_hour_count",
+        "description": "Environmental score hour count",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "fan_cycle_count",
+        "description": "Fan cycle count",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "in_target_range_reading_count",
+        "description": "In target range reading count",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "max_fan_cycle_duration_seconds",
+        "description": "Max fan cycle duration seconds",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "max_pump_cycle_duration_seconds",
+        "description": "Max pump cycle duration seconds",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "max_soil_moisture_pct",
+        "description": "Max soil moisture pct",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "max_temperature_c",
+        "description": "Max temperature c",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "celsius"
+      },
+      {
+        "name": "min_environmental_score",
+        "description": "Min environmental score",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ]
+      },
+      {
+        "name": "min_soil_moisture_pct",
+        "description": "Min soil moisture pct",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "min_temperature_c",
+        "description": "Min temperature c",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "celsius"
+      },
+      {
+        "name": "pct_humidity_readings_in_range",
+        "description": "Pct humidity readings in range",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "pct_moisture_readings_below_threshold",
+        "description": "Pct moisture readings below threshold",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "pct_temperature_readings_in_range",
+        "description": "Pct temperature readings in range",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "percent"
+      },
+      {
+        "name": "pump_cycle_count",
+        "description": "Pump cycle count",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "scored_hour_count",
+        "description": "Scored hour count",
+        "dimensions": [
+          "score_hour__gateway_id",
+          "score_hour__hour_of_day_utc",
+          "score_hour__measurement_hour_utc",
+          "score_hour__score_version",
+          "score_hour__status",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "sensor_reading_count",
+        "description": "Sensor reading count",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "sensor_value_sum",
+        "description": "Sum of sensor values; do not combine across unlike measurement types or units.",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ]
+      },
+      {
+        "name": "soil_moisture_reading_count",
+        "description": "Soil moisture reading count",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "state_change_count",
+        "description": "State change count",
+        "dimensions": [
+          "automation_event__actuator",
+          "automation_event__desired_state",
+          "automation_event__event_type",
+          "automation_event__is_initial_observation",
+          "automation_event__measured_at_utc",
+          "automation_event__observed_state",
+          "automation_event__reason",
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "temperature_range_c",
+        "description": "Temperature range c",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "celsius"
+      },
+      {
+        "name": "temperature_reading_count",
+        "description": "Temperature reading count",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "total_fan_runtime_hours",
+        "description": "Total fan runtime hours",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "hours"
+      },
+      {
+        "name": "total_fan_runtime_seconds",
+        "description": "Total fan runtime seconds",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "total_pump_runtime_seconds",
+        "description": "Total pump runtime seconds",
+        "dimensions": [
+          "actuator_cycle__actuator",
+          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__off_reason",
+          "actuator_cycle__on_reason",
+          "actuator_cycle__pairing_method",
+          "actuator_cycle__start_hour_of_day_utc",
+          "actuator_cycle__started_at_utc",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "seconds"
+      },
+      {
+        "name": "unexpected_pump_on_command_count",
+        "description": "Unexpected pump on command count",
+        "dimensions": [
+          "command__actuator",
+          "command__desired_state",
+          "command__failure_reason",
+          "command__is_acknowledged",
+          "command__is_failed",
+          "command__is_timeout_outcome_unknown",
+          "command__issued_at_utc",
+          "command__reason",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      },
+      {
+        "name": "valid_range_reading_count",
+        "description": "Valid range reading count",
+        "dimensions": [
+          "sensor_hour__day_of_week_utc",
+          "sensor_hour__gateway_id",
+          "sensor_hour__hour_of_day_utc",
+          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__measurement_type",
+          "sensor_hour__sensor_id",
+          "sensor_hour__unit",
+          "metric_time__day",
+          "metric_time__hour"
+        ],
+        "unit": "count"
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "actuator_cycle__actuator",
+        "description": "actuator cycle / actuator"
+      },
+      {
+        "name": "actuator_cycle__ended_at_utc",
+        "description": "actuator cycle / ended at utc"
+      },
+      {
+        "name": "actuator_cycle__off_reason",
+        "description": "actuator cycle / off reason"
+      },
+      {
+        "name": "actuator_cycle__on_reason",
+        "description": "actuator cycle / on reason"
+      },
+      {
+        "name": "actuator_cycle__pairing_method",
+        "description": "actuator cycle / pairing method"
+      },
+      {
+        "name": "actuator_cycle__start_hour_of_day_utc",
+        "description": "actuator cycle / start hour of day utc"
+      },
+      {
+        "name": "actuator_cycle__started_at_utc",
+        "description": "actuator cycle / started at utc"
+      },
+      {
+        "name": "automation_event__actuator",
+        "description": "automation event / actuator"
+      },
+      {
+        "name": "automation_event__desired_state",
+        "description": "automation event / desired state"
+      },
+      {
+        "name": "automation_event__event_type",
+        "description": "automation event / event type"
+      },
+      {
+        "name": "automation_event__is_initial_observation",
+        "description": "automation event / is initial observation"
+      },
+      {
+        "name": "automation_event__measured_at_utc",
+        "description": "automation event / measured at utc"
+      },
+      {
+        "name": "automation_event__observed_state",
+        "description": "automation event / observed state"
+      },
+      {
+        "name": "automation_event__reason",
+        "description": "automation event / reason"
+      },
+      {
+        "name": "command__actuator",
+        "description": "command / actuator"
+      },
+      {
+        "name": "command__desired_state",
+        "description": "command / desired state"
+      },
+      {
+        "name": "command__failure_reason",
+        "description": "command / failure reason"
+      },
+      {
+        "name": "command__is_acknowledged",
+        "description": "command / is acknowledged"
+      },
+      {
+        "name": "command__is_failed",
+        "description": "command / is failed"
+      },
+      {
+        "name": "command__is_timeout_outcome_unknown",
+        "description": "command / is timeout outcome unknown"
+      },
+      {
+        "name": "command__issued_at_utc",
+        "description": "command / issued at utc"
+      },
+      {
+        "name": "command__reason",
+        "description": "command / reason"
+      },
+      {
+        "name": "metric_time__day",
+        "description": "Metric time by day"
+      },
+      {
+        "name": "metric_time__hour",
+        "description": "Metric time by hour"
+      },
+      {
+        "name": "score_hour__gateway_id",
+        "description": "score hour / gateway id"
+      },
+      {
+        "name": "score_hour__hour_of_day_utc",
+        "description": "score hour / hour of day utc"
+      },
+      {
+        "name": "score_hour__measurement_hour_utc",
+        "description": "score hour / measurement hour utc"
+      },
+      {
+        "name": "score_hour__score_version",
+        "description": "score hour / score version"
+      },
+      {
+        "name": "score_hour__status",
+        "description": "score hour / status"
+      },
+      {
+        "name": "sensor_hour__day_of_week_utc",
+        "description": "sensor hour / day of week utc"
+      },
+      {
+        "name": "sensor_hour__gateway_id",
+        "description": "sensor hour / gateway id"
+      },
+      {
+        "name": "sensor_hour__hour_of_day_utc",
+        "description": "sensor hour / hour of day utc"
+      },
+      {
+        "name": "sensor_hour__measurement_hour_utc",
+        "description": "sensor hour / measurement hour utc"
+      },
+      {
+        "name": "sensor_hour__measurement_type",
+        "description": "sensor hour / measurement type"
+      },
+      {
+        "name": "sensor_hour__sensor_id",
+        "description": "sensor hour / sensor id"
+      },
+      {
+        "name": "sensor_hour__unit",
+        "description": "sensor hour / unit"
+      }
+    ]
+  }
+  

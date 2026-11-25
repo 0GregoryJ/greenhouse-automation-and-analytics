@@ -3,3 +3,6 @@ uvicorn==0.54.0
 redis==7.4.1
 snowflake-connector-python==5.2.0
 numpy==2.5.5
+openai
+httpx
+pydantic
