@@ -61,7 +61,7 @@ services:
       DBT_PROJECT_DIR: /app/warehouse
       DBT_PROFILES_DIR: /app/.dbt
       DBT_LOG_PATH: /tmp
-      DBT_TARGET: prod
+      DBT_TARGET: dev
 
     volumes:
       # Host PEM from SNOWFLAKE_KEY_HOST_PATH; readable by the container user (appuser).
