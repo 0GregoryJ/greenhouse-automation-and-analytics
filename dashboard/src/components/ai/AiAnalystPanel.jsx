@@ -1,4 +1,12 @@
-import { IconSparkle } from "../layout/NavIcons.jsx";
+import { memo, useEffect, useRef, useState } from "react";
+import { useAnalystQuery } from "../../hooks/useAnalystQuery.js";
+import { IconArrowUpRight, IconSparkle } from "../layout/NavIcons.jsx";
+import { AnalystComposer } from "./AnalystComposer.jsx";
+import { AnalystResult } from "./AnalystResult.jsx";
+
+const DEFAULT_TITLE = "Greenhouse Analyst";
+const DEFAULT_DESCRIPTION =
+  "Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data.";
 
 const DEFAULT_PROMPTS = [
   "How has my environment score trended this week?",
@@ -6,73 +14,193 @@ const DEFAULT_PROMPTS = [
   "When were soil moisture readings outside target?",
 ];
 
-/**
- * Coming-soon analyst surface styled like governed / semantic-layer copilots:
- * constrained prompts, metric grounding, no free-form warehouse access yet.
- */
-export function AiAnalystPanel({
-  title = "Greenhouse analyst",
-  description = "Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data.",
-  prompts = DEFAULT_PROMPTS,
-  variant = "full",
-}) {
+function prefersReducedMotion() {
   return (
-    <section
-      className={
-        variant === "compact" ? "ai-panel ai-panel-compact" : "ai-panel"
-      }
-      aria-label={`${title} (coming soon)`}
-    >
-      <header className="ai-panel-head">
-        <div className="ai-panel-title-row">
-          <span className="ai-panel-icon" aria-hidden="true">
-            <IconSparkle className="ai-sparkle" />
-          </span>
-          <div>
-            <div className="ai-panel-heading">
-              <h2>{title}</h2>
-              <span className="ai-badge">Coming soon</span>
-            </div>
-            <p className="ai-panel-copy">{description}</p>
-          </div>
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function PanelHeading({ title, description, action }) {
+  return (
+    <header className="ai-panel-head">
+      <div className="ai-panel-title-row">
+        <span className="ai-panel-icon" aria-hidden="true">
+          <IconSparkle className="ai-sparkle" />
+        </span>
+        <div className="ai-panel-title-text">
+          <h2 className="ai-panel-heading">{title}</h2>
+          <p className="ai-panel-copy">{description}</p>
         </div>
-      </header>
-
-      <div className="ai-composer" aria-disabled="true">
-        <label className="visually-hidden" htmlFor="ai-ask-disabled">
-          Ask a question
-        </label>
-        <textarea
-          id="ai-ask-disabled"
-          className="ai-input"
-          rows={variant === "compact" ? 2 : 3}
-          disabled
-          placeholder="Ask a question about greenhouse metrics…"
-        />
-        <button type="button" className="ai-send" disabled aria-label="Send">
-          →
-        </button>
+        {action}
       </div>
+    </header>
+  );
+}
 
-      <div className="ai-prompts">
-        <p className="ai-prompts-label">Example questions</p>
-        <ul className="ai-prompt-list">
-          {prompts.map((prompt) => (
-            <li key={prompt}>
-              <button type="button" className="ai-prompt-chip" disabled>
-                {prompt}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+function AnalystHomeCard({ title, description, prompts, onOpenAnalyst }) {
+  return (
+    <section className="ai-panel ai-panel-home" aria-label={title}>
+      <PanelHeading
+        title={title}
+        description={description}
+        action={
+          <button
+            type="button"
+            className="ai-home-link"
+            onClick={() => onOpenAnalyst?.()}
+            aria-label={`Open ${title}`}
+            title={`Open ${title}`}
+          >
+            <IconArrowUpRight className="ai-home-link-icon" />
+          </button>
+        }
+      />
 
-      {variant === "full" && (
-        <p className="ai-footnote">
-          Designed for a semantic layer: verified metrics, clear definitions,
-          and citation-backed answers once warehouse models are ready.
-        </p>
+      {prompts.length > 0 && (
+        <div className="ai-prompts">
+          <p className="ai-prompts-label">Try asking</p>
+          <ul className="ai-prompt-list">
+            {prompts.map((prompt) => (
+              <li key={prompt}>
+                <button
+                  type="button"
+                  className="ai-prompt-chip"
+                  onClick={() => onOpenAnalyst?.(prompt)}
+                >
+                  {prompt}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );
 }
+
+function AnalystWorkspace({
+  title,
+  description,
+  prompts,
+  analystIntent,
+  onAnalystIntentHandled,
+}) {
+  const { status, activeQuestion, result, error, ask } = useAnalystQuery();
+  const [draft, setDraft] = useState("");
+  const cardRef = useRef(null);
+  const inputRef = useRef(null);
+  const handledIntentRef = useRef(null);
+  const busy = status === "loading";
+
+  function submit(question) {
+    if (busy) return;
+    if (ask(question)) setDraft("");
+  }
+
+  useEffect(() => {
+    if (!analystIntent || handledIntentRef.current === analystIntent.id) {
+      return undefined;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      handledIntentRef.current = analystIntent.id;
+      cardRef.current?.scrollIntoView({
+        block: "nearest",
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+      inputRef.current?.focus({ preventScroll: true });
+      if (analystIntent.question) ask(analystIntent.question);
+      onAnalystIntentHandled?.();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [analystIntent, ask, onAnalystIntentHandled]);
+
+  return (
+    <section
+      ref={cardRef}
+      className="ai-panel ai-panel-workspace"
+      aria-label={title}
+    >
+      <PanelHeading title={title} description={description} />
+
+      <AnalystComposer
+        value={draft}
+        onChange={setDraft}
+        onSubmit={submit}
+        busy={busy}
+        prompts={status === "idle" ? prompts : []}
+        inputRef={inputRef}
+      />
+
+      {status !== "idle" && (
+        <div className="ai-output" aria-busy={busy}>
+          <p className="ai-question">
+            <span className="visually-hidden">Question: </span>
+            {activeQuestion}
+          </p>
+
+          <div aria-live="polite">
+            {busy && (
+              <p className="ai-status">
+                <span className="ai-status-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                Analyzing governed greenhouse data…
+              </p>
+            )}
+
+            {status === "error" && (
+              <div className="ai-error" role="alert">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  className="ai-text-button"
+                  onClick={() => ask(activeQuestion)}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
+
+          {status === "success" && result && <AnalystResult result={result} />}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export const AiAnalystPanel = memo(function AiAnalystPanel({
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
+  prompts = DEFAULT_PROMPTS,
+  variant = "home",
+  onOpenAnalyst,
+  analystIntent = null,
+  onAnalystIntentHandled,
+}) {
+  if (variant === "workspace") {
+    return (
+      <AnalystWorkspace
+        title={title}
+        description={description}
+        prompts={prompts}
+        analystIntent={analystIntent}
+        onAnalystIntentHandled={onAnalystIntentHandled}
+      />
+    );
+  }
+
+  return (
+    <AnalystHomeCard
+      title={title}
+      description={description}
+      prompts={prompts}
+      onOpenAnalyst={onOpenAnalyst}
+    />
+  );
+});

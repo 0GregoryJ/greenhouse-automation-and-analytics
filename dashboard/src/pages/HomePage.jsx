@@ -32,6 +32,7 @@ export function HomePage({
   lastFetchedAt,
   now,
   onOpenAutomationAnalytics,
+  onOpenAnalyst,
 }) {
   const loaded = loadStatus !== "loading" || readings.length > 0;
   const sorted = [...readings].sort(
@@ -139,7 +140,7 @@ export function HomePage({
 
       <div className="home-secondary">
         <div className="home-ai-slot" ref={aiPanelRef}>
-          <AiAnalystPanel />
+          <AiAnalystPanel variant="home" onOpenAnalyst={onOpenAnalyst} />
         </div>
         <RecentAutomations
           events={events}

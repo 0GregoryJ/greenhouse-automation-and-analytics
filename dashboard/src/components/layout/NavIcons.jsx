@@ -116,6 +116,21 @@ export function IconDroplet({ className }) {
   );
 }
 
+export function IconCode({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m8.5 8-4 4 4 4M15.5 8l4 4-4 4M13.5 5.5l-3 13"
+      />
+    </svg>
+  );
+}
+
 export function IconArrowUpRight({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">

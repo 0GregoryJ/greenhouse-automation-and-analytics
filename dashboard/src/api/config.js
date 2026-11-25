@@ -27,3 +27,4 @@ export const HISTORY_AUTOMATIONS_URL = `${API_BASE_URL}/api/v1/history/automatio
 export const ENVIRONMENT_SCORE_CURRENT_URL = `${API_BASE_URL}/api/v1/environment/score/current`;
 export const ENVIRONMENT_SCORE_HISTORY_URL = `${API_BASE_URL}/api/v1/environment/score/history`;
 export const AUTOMATION_EVENTS_RECENT_URL = `${API_BASE_URL}/api/v1/automation/events/recent`;
+export const ANALYST_QUERY_URL = `${API_BASE_URL}/api/analyst/query`;

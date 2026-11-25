@@ -13,7 +13,13 @@ const ANALYTICS_PROMPTS = [
   "Which hours were farthest from target conditions?",
 ];
 
-export function AnalyticsPage({ readings, now, initialMode = "score" }) {
+export function AnalyticsPage({
+  readings,
+  now,
+  initialMode = "score",
+  analystIntent = null,
+  onAnalystIntentHandled,
+}) {
   return (
     <section className="view analytics-view" aria-label="Analytics">
       <div className="view-toolbar">
@@ -31,10 +37,10 @@ export function AnalyticsPage({ readings, now, initialMode = "score" }) {
 
       <div className="analytics-ai-slot">
         <AiAnalystPanel
-          variant="compact"
-          title="Greenhouse analyst"
-          description="Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data."
+          variant="workspace"
           prompts={ANALYTICS_PROMPTS}
+          analystIntent={analystIntent}
+          onAnalystIntentHandled={onAnalystIntentHandled}
         />
       </div>
 

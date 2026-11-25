@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import { Sidebar } from "./components/layout/Sidebar.jsx";
 import { useLiveReadings } from "./hooks/useLiveReadings.js";
@@ -20,6 +20,8 @@ function readSidebarCollapsed() {
 export default function App() {
   const [page, setPage] = useState("home");
   const [analyticsMode, setAnalyticsMode] = useState("score");
+  const [analystIntent, setAnalystIntent] = useState(null);
+  const analystIntentIdRef = useRef(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [now, setNow] = useState(() => Date.now());
   const { readings, status, error, lastFetchedAt } = useLiveReadings({
@@ -45,6 +47,7 @@ export default function App() {
 
   function navigate(nextPage) {
     setPage(nextPage);
+    setAnalystIntent(null);
     if (nextPage === "analytics") {
       setAnalyticsMode("score");
     }
@@ -52,8 +55,21 @@ export default function App() {
 
   function openAutomationAnalytics() {
     setAnalyticsMode("automations");
+    setAnalystIntent(null);
     setPage("analytics");
   }
+
+  const openAnalyst = useCallback((question) => {
+    analystIntentIdRef.current += 1;
+    setAnalystIntent({
+      id: analystIntentIdRef.current,
+      question: typeof question === "string" ? question : null,
+    });
+    setAnalyticsMode("score");
+    setPage("analytics");
+  }, []);
+
+  const clearAnalystIntent = useCallback(() => setAnalystIntent(null), []);
 
   return (
     <div className={sidebarCollapsed ? "app-shell is-collapsed" : "app-shell"}>
@@ -73,6 +89,7 @@ export default function App() {
             lastFetchedAt={lastFetchedAt}
             now={now}
             onOpenAutomationAnalytics={openAutomationAnalytics}
+            onOpenAnalyst={openAnalyst}
           />
         )}
         {page === "control" && <ControlPage />}
@@ -81,6 +98,8 @@ export default function App() {
             readings={readings}
             now={now}
             initialMode={analyticsMode}
+            analystIntent={analystIntent}
+            onAnalystIntentHandled={clearAnalystIntent}
           />
         )}
         {page === "about" && <AboutPage />}
