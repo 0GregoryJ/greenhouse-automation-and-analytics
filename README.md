@@ -2,26 +2,6 @@
   <img src="docs/assets/header.png" alt="Greenhouse Automation and Analytics" width="100%">
 </p>
 
-<p align="center">
-  <img alt="ESP32" src="https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white">
-  <img alt="Mosquitto" src="https://img.shields.io/badge/Mosquitto-3C5280?style=for-the-badge&logo=eclipsemosquitto&logoColor=white">
-  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
-  <img alt="Kafka" src="https://img.shields.io/badge/Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white">
-  <img alt="Redis" src="https://img.shields.io/badge/Redis-FF4438?style=for-the-badge&logo=redis&logoColor=white">
-  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB">
-  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white">
-  <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white">
-  <img alt="Caddy" src="https://img.shields.io/badge/Caddy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white">
-  <img alt="AWS" src="docs/assets/badges/aws.svg">
-  <img alt="Snowflake" src="https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white">
-  <img alt="dbt" src="docs/assets/badges/dbt.svg">
-  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white">
-  <img alt="Tailscale" src="https://img.shields.io/badge/Tailscale-242424?style=for-the-badge&logo=tailscale&logoColor=white">
-  <img alt="GitHub Actions" src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
-</p>
-
 # Greenhouse Automation and Analytics
 
 A greenhouse automation an analytics system that translates real-time soil moisture, air temperature, atmospheric pressure, and relative humidity readings ito automated irrigation and ventilation, as well as AI-powered analytics. An ESP32 microcontroller publishes readings over MQTT to a Raspberry Pi, which triggers irrigation and ventilation via an MQTT-connected pump and fan when temperature and soil moisture cross configured thresholds. The same Pi buffers data in a SQLite outbox, publishing pending events to Kafka on AWS over Tailscale with at-least-once delivery. A Redis database feeds the live dashboard, and S3 holds the permanent archive. Snowflake + dbt + MetricFlowproduce tested data models and metrics, and an AI analayst answers natural-language questions by querying MetricFlow's governed metrics.
