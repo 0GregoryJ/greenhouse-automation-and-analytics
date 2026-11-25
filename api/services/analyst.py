@@ -27,10 +27,15 @@ import os
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
+import logging
 
 import httpx
 from openai import OpenAI
 from pydantic import BaseModel, Field
+
+from api.services.metricflow import compile_metricflow_sql
+
+logger = logging.getLogger(__name__)
 
 
 class QueryPlan(BaseModel):
@@ -209,51 +214,112 @@ class GreenhouseAnalyst:
             raise AnalystError("Model did not return a valid summary")
         return response.output_parsed
 
+    
     @staticmethod
-    def _visualization(plan: QueryPlan, result: dict[str, Any]) -> dict[str, Any]:
+    def _visualization(
+        plan: QueryPlan,
+        result: dict[str, Any]
+    ) -> dict[str, Any]:
         columns = result["columns"]
-        # MetricFlow column names are normally uppercase in the API response.
         lookup = {str(c).lower(): str(c) for c in columns}
-        x_key = lookup.get(plan.group_by[0].lower()) if plan.group_by else None
+
+        x_key = (
+            lookup.get(plan.group_by[0].lower())
+            if plan.group_by else None
+        )
+
         series = [
             {"dataKey": lookup[m.lower()], "label": m}
             for m in plan.metrics
             if m.lower() in lookup
         ]
+
         chart_type = plan.chart_type
-        if chart_type in ("line", "bar") and (not x_key or not series):
+
+        if chart_type in ("line", "bar") and (
+            not x_key or not series
+        ):
             chart_type = "table"
+
+        rows = list(result["rows"])
+
+        # Sort time-series data chronologically.
+        if x_key and plan.group_by[0].startswith("metric_time"):
+            rows.sort(
+                key=lambda row: (
+                    row.get(x_key) is None,
+                    str(row.get(x_key) or "")
+                )
+            )
+
         return {
-            "type": chart_type if result["rows"] else "none",
+            "type": chart_type if rows else "none",
             "title": plan.title,
             "xKey": x_key,
             "series": series,
             "columns": columns,
-            "rows": result["rows"],
+            "rows": rows,
         }
 
+
+    
     def ask(self, question: str) -> dict[str, Any]:
         question = question.strip()
+
         if not 3 <= len(question) <= 1000:
-            raise AnalystError("Question must be between 3 and 1000 characters")
+            raise AnalystError(
+                "Question must be between 3 and 1000 characters"
+            )
+
+        # 1. OpenAI plans the query.
         plan = self._plan(question)
+
+        # 2. Validate against governed catalog.
         query = self._validate(plan)
+
+        # 3. Retrieve data through MetricFlow.
         result = self._query(query)
+
+        # 4. Compile SQL using the same validated query.
+        sql = None
+        sql_error = None
+
+        try:
+            sql = compile_metricflow_sql(query)
+        except (RuntimeError, OSError, TimeoutError) as exc:
+            logger.exception("MetricFlow SQL compilation failed")
+            sql_error = "Generated SQL is temporarily unavailable."
+
+        # 5. Generate a data-grounded explanation.
         if result["rows"]:
-            narrative = self._summarize(question, plan, result)
+            narrative = self._summarize(
+                question, plan, result
+            )
         else:
             narrative = Narrative(
-                answer="No data was returned for the selected metrics and time range.",
+                answer=(
+                    "No data was returned for the selected "
+                    "metrics and time range."
+                ),
                 highlights=[],
-                caveats=["The result contains no rows; that does not imply zero readings."],
+                caveats=[
+                    "The result contains no rows; "
+                    "that does not imply zero readings."
+                ],
             )
+
+        # 6. Return the complete React-ready response.
         return {
             "question": question,
             "answer": narrative.answer,
             "highlights": narrative.highlights,
             "caveats": narrative.caveats,
             "query": query,
-            "visualization": self._visualization(plan, result),
+            "visualization": self._visualization(
+                plan, result
+            ),
+            "sql": sql,
+            "sql_error": sql_error,
             "source": "governed_metricflow",
         }
 

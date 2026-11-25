@@ -290,3 +290,63 @@ def query_metrics(query: MetricQuery) -> dict[str, Any]:
         "row_count": len(rows),
         "limit": query.limit,
     }
+
+def compile_metricflow_sql(query: dict) -> str:
+    """Compile a validated MetricFlow query to SQL.
+
+    The caller must validate metrics, dimensions,
+    date boundaries and limits before calling.
+    """
+    cmd = [
+        "mf", "query",
+        "--metrics", ",".join(query["metrics"]),
+        "--start-time", query["start_time"],
+        "--end-time", query["end_time"],
+        "--limit", str(query["limit"]),
+        "--explain",
+    ]
+
+    if query["group_by"]:
+        cmd.extend([
+            "--group-by", ",".join(query["group_by"])
+        ])
+
+    result = subprocess.run(
+        cmd,
+        cwd=os.getenv("METRICFLOW_PROJECT_DIR", "/app/warehouse"),
+        capture_output=True,
+        text=True,
+        timeout=90,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"MetricFlow compilation failed: "
+            f"{result.stderr[-1000:]}"
+        )
+
+    # Strip terminal color codes.
+    output = re.sub(
+        r"\x1b\[[0-9;]*m", "", result.stdout
+    )
+
+    # MetricFlow's explain output contains a SQL marker.
+    marker = re.search(
+        r"SQL\s*\(.*?\)\s*:",
+        output,
+        flags=re.IGNORECASE,
+    )
+    if not marker:
+        raise RuntimeError(
+            "MetricFlow did not return recognizable SQL output"
+        )
+
+    sql = output[marker.end():].strip()
+
+    if not sql.lower().startswith(("select", "with")):
+        raise RuntimeError(
+            "Compiled output is not recognized as SQL"
+        )
+
+    return sql
