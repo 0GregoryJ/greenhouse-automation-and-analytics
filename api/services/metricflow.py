@@ -205,7 +205,7 @@ def validate_query(query: MetricQuery) -> None:
     allowed = set(list_dimensions(query.metrics))
     # MetricFlow permits standard grains of the global metric_time dimension.
     if "metric_time" in allowed:
-        allowed |= {f"metric_time__{grain}" for grain in ("day", "week", "month", "quarter", "year")}
+        allowed |= {f"metric_time__{grain}" for grain in ("hour", "day", "week", "month", "quarter", "year")}
     invalid = sorted(set(query.group_by) - allowed)
     if invalid:
         raise MetricFlowValidationError(f"Unsupported dimensions for requested metrics: {', '.join(invalid)}")
