@@ -7,12 +7,6 @@ const HistoryView = lazy(() =>
   }))
 );
 
-const ANALYTICS_PROMPTS = [
-  "Summarize environment score for the selected period",
-  "Did irrigation improve soil moisture afterward?",
-  "Which hours were farthest from target conditions?",
-];
-
 export function AnalyticsPage({
   readings,
   now,
@@ -38,7 +32,6 @@ export function AnalyticsPage({
       <div className="analytics-ai-slot">
         <AiAnalystPanel
           variant="workspace"
-          prompts={ANALYTICS_PROMPTS}
           analystIntent={analystIntent}
           onAnalystIntentHandled={onAnalystIntentHandled}
         />

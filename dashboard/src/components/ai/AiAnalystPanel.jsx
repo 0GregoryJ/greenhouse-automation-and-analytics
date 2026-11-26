@@ -9,9 +9,9 @@ const DEFAULT_DESCRIPTION =
   "Ask questions against governed metrics for trustworthy, AI-powered insights into greenhouse data.";
 
 const DEFAULT_PROMPTS = [
-  "How has my environment score trended this week?",
-  "Which factor limited conditions the most today?",
-  "When were soil moisture readings outside target?",
+  "How has environmental score trended with temperature and humidity the past couple days?",
+  "Which hours of the day have the lowest environment score?",
+  "Does soil tend to be more moist when it's colder?",
 ];
 
 function prefersReducedMotion() {

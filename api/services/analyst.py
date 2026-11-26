@@ -179,8 +179,16 @@ class GreenhouseAnalyst:
                 response = session.post(self.metrics_url, json=payload, headers=headers)
                 response.raise_for_status()
                 result = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise AnalystError(f"Metrics API query failed: {exc}") from exc
+        except httpx.HTTPStatusError as exc:
+            raise AnalystError(
+                f"Metrics API returned {exc.response.status_code}: "
+                f"{exc.response.text[:3000]}"
+            ) from exc
+
+        except (httpx.RequestError, ValueError) as exc:
+            raise AnalystError(
+                f"Metrics API query failed: {exc}"
+            ) from exc
         if not isinstance(result, dict) or not isinstance(result.get("rows"), list):
             raise AnalystError("Metrics API response is missing a rows array")
         if not isinstance(result.get("columns"), list):
