@@ -5,11 +5,17 @@ models:
   - name: fct_sensor_hourly
     description: >
       Hourly environmental statistics grouped by UTC hour,
-      gateway, sensor, measurement type, and unit.
+      gateway, sensor, measurement type, and unit. measurement_hour_pt
+      is that same hour in Pacific wall time.
       Calculated from valid deduplicated sensor readings.
 
     columns:
       - name: measurement_hour_utc
+        data_tests:
+          - not_null
+
+      - name: measurement_hour_pt
+        description: Pacific wall-clock start of this UTC hour (America/Los_Angeles).
         data_tests:
           - not_null
 
@@ -69,12 +75,13 @@ models:
 
   - name: fct_sensor_daily
     description: >
-      Daily environmental statistics grouped by UTC date,
+      Daily environmental statistics grouped by Pacific date,
       gateway, sensor, measurement type, and unit.
       Aggregated directly from individual valid readings.
 
     columns:
-      - name: measurement_date_utc
+      - name: measurement_date_pt
+        description: Pacific calendar date (America/Los_Angeles).
         data_tests:
           - not_null
 
@@ -166,6 +173,11 @@ models:
         data_tests:
           - not_null
 
+      - name: measurement_hour_pt
+        description: Pacific wall-clock start of the scored UTC hour.
+        data_tests:
+          - not_null
+
       - name: gateway_id
         description: Gateway identifying the monitored greenhouse.
         data_tests:
@@ -217,8 +229,8 @@ models:
       They are not direct measurements of plant health.
 
     columns:
-      - name: measurement_date_utc
-        description: UTC date for the daily aggregation.
+      - name: measurement_date_pt
+        description: Pacific date for the daily aggregation.
         data_tests:
           - not_null
 
@@ -299,6 +311,21 @@ models:
         data_tests:
           - not_null
 
+      - name: measured_at_pt
+        description: Event timestamp as Pacific wall time.
+        data_tests:
+          - not_null
+
+      - name: measurement_hour_pt
+        description: Pacific hour containing the event.
+        data_tests:
+          - not_null
+
+      - name: measurement_date_pt
+        description: Pacific date containing the event.
+        data_tests:
+          - not_null
+
       - name: cycle_id
         description: Optional pump cycle identifier linking related events.
 
@@ -373,6 +400,16 @@ models:
 
       - name: ended_at_utc
         description: UTC timestamp when the actuator turned off.
+        data_tests:
+          - not_null
+
+      - name: started_at_pt
+        description: Pacific wall time when the actuator turned on.
+        data_tests:
+          - not_null
+
+      - name: ended_at_pt
+        description: Pacific wall time when the actuator turned off.
         data_tests:
           - not_null
 

@@ -14,7 +14,9 @@ const UNIT_SUFFIXES = [
   { token: "hours", unit: "h" },
 ];
 
-const WORD_OVERRIDES = { avg: "Avg", min: "Min", max: "Max", utc: "UTC", id: "ID" };
+const WORD_OVERRIDES = { avg: "Avg", min: "Min", max: "Max", utc: "UTC", pt: "PT", id: "ID" };
+
+const PACIFIC = "America/Los_Angeles";
 
 function tokensFor(key) {
   const name = String(key ?? "").toLowerCase();
@@ -54,15 +56,50 @@ export function granularityForKey(key) {
   return GRANULARITIES.includes(last) ? last : null;
 }
 
+function pacificOffsetMs(date) {
+  const parts = {};
+  for (const part of new Intl.DateTimeFormat("en-US", {
+    timeZone: PACIFIC,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date)) {
+    if (part.type !== "literal") parts[part.type] = part.value;
+  }
+  const wallAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  return wallAsUtc - date.getTime();
+}
+
+/** Offset-less warehouse timestamps are Pacific wall time, not UTC. */
+function pacificWallTimeMs(isoLocal) {
+  const match = isoLocal.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (!match) return NaN;
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  const wallAsUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+  const corrected = wallAsUtc - pacificOffsetMs(new Date(wallAsUtc));
+  return wallAsUtc - pacificOffsetMs(new Date(corrected));
+}
+
 /**
- * Parses warehouse timestamps. Values without an offset are treated as UTC,
- * matching how MetricFlow returns `metric_time` and `*_utc` dimensions.
+ * Parses warehouse timestamps. Values without an offset are Pacific wall time
+ * (America/Los_Angeles), matching MetricFlow `metric_time` and `*_pt` dimensions.
  */
 export function parseTimeValue(value) {
   if (typeof value !== "string" || !DATE_PREFIX.test(value)) return null;
   const trimmed = value.trim();
   const iso = trimmed.length === 10 ? `${trimmed}T00:00:00` : trimmed.replace(" ", "T");
-  const ms = Date.parse(HAS_ZONE.test(iso) ? iso : `${iso}Z`);
+  const ms = HAS_ZONE.test(iso) ? Date.parse(iso) : pacificWallTimeMs(iso);
   return Number.isFinite(ms) ? ms : null;
 }
 
@@ -183,12 +220,12 @@ export function formatAxisNumber(value) {
   return Math.abs(n) >= 10_000 ? compactFormatter.format(n) : numberFormatter.format(n);
 }
 
-/** Short axis label for a time value at the given granularity (UTC wall clock). */
+/** Short axis label for a Pacific wall-clock time value. */
 export function formatTimeTick(value, granularity) {
   const ms = parseTimeValue(value);
   if (ms === null) return String(value ?? "");
   const date = new Date(ms);
-  const opts = { timeZone: "UTC" };
+  const opts = { timeZone: PACIFIC };
   if (granularity === "hour") {
     Object.assign(opts, { month: "short", day: "numeric", hour: "numeric" });
   } else if (granularity === "month" || granularity === "quarter") {
@@ -206,10 +243,10 @@ export function formatTimeLabel(value, granularity) {
   const ms = parseTimeValue(value);
   if (ms === null) return String(value ?? "");
   const date = new Date(ms);
-  const opts = { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" };
+  const opts = { timeZone: PACIFIC, month: "short", day: "numeric", year: "numeric" };
   if (granularity === "hour" || granularity === null) {
     Object.assign(opts, { hour: "numeric", minute: "2-digit" });
-    return `${date.toLocaleString("en-US", opts)} UTC`;
+    return `${date.toLocaleString("en-US", opts)} PT`;
   }
   if (granularity === "week") return `Week of ${date.toLocaleString("en-US", opts)}`;
   return date.toLocaleString("en-US", opts);

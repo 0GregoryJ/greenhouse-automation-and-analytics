@@ -7,7 +7,7 @@
 -- a late-arriving event can land between them.
 WITH hourly_rolled_up AS (
     SELECT
-        TO_DATE(measurement_hour_utc) AS measurement_date_utc,
+        TO_DATE(measurement_hour_pt) AS measurement_date_pt,
         gateway_id,
         sensor_id,
         measurement_type,
@@ -24,8 +24,8 @@ WITH hourly_rolled_up AS (
 )
 
 SELECT
-    COALESCE(h.measurement_date_utc, d.measurement_date_utc)
-        AS measurement_date_utc,
+    COALESCE(h.measurement_date_pt, d.measurement_date_pt)
+        AS measurement_date_pt,
     COALESCE(h.measurement_type, d.measurement_type) AS measurement_type,
     h.reading_count AS hourly_reading_count,
     d.reading_count AS daily_reading_count,
@@ -35,7 +35,7 @@ SELECT
 FROM hourly_rolled_up AS h
 
 FULL OUTER JOIN {{ ref('fct_sensor_daily') }} AS d
-    ON h.measurement_date_utc = d.measurement_date_utc
+    ON h.measurement_date_pt = d.measurement_date_pt
    AND h.gateway_id = d.gateway_id
    AND h.sensor_id = d.sensor_id
    AND h.measurement_type = d.measurement_type

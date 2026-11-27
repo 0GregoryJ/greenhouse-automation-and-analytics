@@ -1,8 +1,8 @@
 {{ config(materialized='table') }}
 
 SELECT
-    TO_DATE(measurement_hour_utc)
-        AS measurement_date_utc,
+    TO_DATE(measurement_hour_pt)
+        AS measurement_date_pt,
 
     gateway_id,
     score_version,

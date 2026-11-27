@@ -1,7 +1,8 @@
 {{ config(materialized='table') }}
 
--- Hourly UTC time spine for MetricFlow. Same bounds as the daily spine
--- (up to the current UTC hour).
+-- Hourly Pacific wall-clock spine for MetricFlow. Values are TIMESTAMP_NTZ
+-- in America/Los_Angeles, matching measurement_hour_pt, and stop at the
+-- current Pacific hour.
 SELECT date_hour
 FROM (
     SELECT
@@ -12,4 +13,7 @@ FROM (
         ) AS date_hour
     FROM TABLE(GENERATOR(ROWCOUNT => 87600))
 )
-WHERE date_hour <= DATE_TRUNC('hour', CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::TIMESTAMP_NTZ)
+WHERE date_hour <= DATE_TRUNC(
+    'hour',
+    CONVERT_TIMEZONE('America/Los_Angeles', CURRENT_TIMESTAMP())::TIMESTAMP_NTZ
+)

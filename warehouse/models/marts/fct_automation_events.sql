@@ -34,6 +34,20 @@ validated AS (
             CONVERT_TIMEZONE('UTC', measured_at)::TIMESTAMP_NTZ
         ) AS measurement_date_utc,
 
+        CONVERT_TIMEZONE(
+            'America/Los_Angeles',
+            measured_at
+        )::TIMESTAMP_NTZ AS measured_at_pt,
+
+        DATE_TRUNC(
+            'HOUR',
+            CONVERT_TIMEZONE('America/Los_Angeles', measured_at)::TIMESTAMP_NTZ
+        ) AS measurement_hour_pt,
+
+        TO_DATE(
+            CONVERT_TIMEZONE('America/Los_Angeles', measured_at)::TIMESTAMP_NTZ
+        ) AS measurement_date_pt,
+
         kafka_topic,
         kafka_partition,
         kafka_offset,

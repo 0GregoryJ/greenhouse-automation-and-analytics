@@ -37,9 +37,9 @@ describe("unit and granularity detection", () => {
 });
 
 describe("parseTimeValue", () => {
-  it("treats naive warehouse timestamps as UTC", () => {
-    assert.equal(parseTimeValue("2026-11-24 00:00:00"), Date.UTC(2026, 10, 24));
-    assert.equal(parseTimeValue("2026-11-24"), Date.UTC(2026, 10, 24));
+  it("treats naive warehouse timestamps as Pacific wall time", () => {
+    assert.equal(parseTimeValue("2026-11-24 00:00:00"), Date.UTC(2026, 10, 24, 8));
+    assert.equal(parseTimeValue("2026-11-24"), Date.UTC(2026, 10, 24, 8));
   });
 
   it("rejects non-dates", () => {
@@ -112,7 +112,7 @@ describe("formatting", () => {
     assert.equal(formatAnalystNumber(1200, "s"), "1,200 s");
   });
 
-  it("formats day ticks in UTC", () => {
+  it("formats day ticks in Pacific time", () => {
     assert.equal(formatTimeTick("2026-11-24 00:00:00", "day"), "Nov 24");
   });
 });

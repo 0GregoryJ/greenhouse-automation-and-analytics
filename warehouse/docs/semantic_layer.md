@@ -37,9 +37,9 @@ Design choices:
 
 | Semantic model | Source | Grain | Time axis (`metric_time`) | Primary entity | Foreign entities |
 | --- | --- | --- | --- | --- | --- |
-| `sensor_hourly` | `fct_sensor_hourly` | UTC hour × gateway × sensor × measurement type × unit | `measurement_hour_utc` (hour) | `sensor_hour` | `gateway`, `sensor` |
-| `environmental_score_hourly` | `fct_environmental_score_hourly` | UTC hour × gateway × score version | `measurement_hour_utc` (hour) | `score_hour` | `gateway` |
-| `actuator_cycles` | `fct_actuator_cycles` | one completed ON→OFF cycle | `started_at_utc` (hour) | `actuator_cycle` | none |
+| `sensor_hourly` | `fct_sensor_hourly` | UTC hour × gateway × sensor × measurement type × unit | `measurement_hour_pt` (hour) | `sensor_hour` | `gateway`, `sensor` |
+| `environmental_score_hourly` | `fct_environmental_score_hourly` | UTC hour × gateway × score version | `measurement_hour_pt` (hour) | `score_hour` | `gateway` |
+| `actuator_cycles` | `fct_actuator_cycles` | one completed ON→OFF cycle | `started_at_pt` (hour) | `actuator_cycle` | none |
 | `automation_events` | `fct_automation_events` | one event | `measured_at_utc` (hour) | `automation_event` | `command` |
 | `automation_commands` | `fct_automation_commands` | one command issued | `issued_at_utc` (hour) | `command` | none |
 
@@ -124,9 +124,9 @@ Totals: 38 reportable metrics plus 6 building blocks (44 in `mf list metrics`).
 
 | Semantic model | Dimension prefix | Dimensions |
 | --- | --- | --- |
-| `sensor_hourly` | `sensor_hour__` | `measurement_type`, `unit`, `gateway_id`, `sensor_id`, `hour_of_day_utc` (0–23), `day_of_week_utc` (1 = Monday … 7), `measurement_hour_utc` |
-| `environmental_score_hourly` | `score_hour__` | `gateway_id`, `score_version`, `status` (`complete` / `incomplete`), `hour_of_day_utc`, `measurement_hour_utc` |
-| `actuator_cycles` | `actuator_cycle__` | `actuator` (`fan`, `pump`), `pairing_method` (`cycle_id`, `sequential_state`), `on_reason`, `off_reason`, `start_hour_of_day_utc`, `started_at_utc`, `ended_at_utc` |
+| `sensor_hourly` | `sensor_hour__` | `measurement_type`, `unit`, `gateway_id`, `sensor_id`, `hour_of_day_pt` (0–23 Pacific), `day_of_week_pt` (1 = Monday … 7), `measurement_hour_pt` |
+| `environmental_score_hourly` | `score_hour__` | `gateway_id`, `score_version`, `status` (`complete` / `incomplete`), `hour_of_day_pt`, `measurement_hour_pt` |
+| `actuator_cycles` | `actuator_cycle__` | `actuator` (`fan`, `pump`), `pairing_method` (`cycle_id`, `sequential_state`), `on_reason`, `off_reason`, `start_hour_of_day_pt`, `started_at_pt`, `ended_at_pt` |
 | `automation_events` | `automation_event__` | `actuator`, `event_type`, `reason`, `desired_state`, `observed_state`, `is_initial_observation`, `measured_at_utc` |
 | `automation_commands` | `command__` | `actuator`, `reason`, `desired_state`, `is_acknowledged`, `is_failed`, `is_timeout_outcome_unknown`, `failure_reason`, `issued_at_utc` |
 
@@ -208,7 +208,7 @@ mf query --metrics pump_cycle_count --group-by metric_time__day \
 mf query --metrics avg_temperature_c,max_temperature_c --group-by metric_time__week
 
 # Categorical grouping: soil moisture by UTC hour of day
-mf query --metrics avg_soil_moisture_pct --group-by sensor_hour__hour_of_day_utc --order sensor_hour__hour_of_day_utc
+mf query --metrics avg_soil_moisture_pct --group-by sensor_hour__hour_of_day_pt --order sensor_hour__hour_of_day_pt
 
 # Environmental health with a date filter
 mf query --metrics avg_environmental_score,environmental_score_coverage_pct \
@@ -276,14 +276,14 @@ The reading-weighted average compiles to `SUM(avg_value * reading_count)` divide
 | --- | --- |
 | What was the average greenhouse temperature yesterday? | `avg_temperature_c` by `metric_time__day`, date range of yesterday |
 | How has average soil moisture changed over the last week? | `avg_soil_moisture_pct` by `metric_time__day` |
-| What time of day is the greenhouse hottest? | `avg_temperature_c` (and `max_temperature_c`) by `sensor_hour__hour_of_day_utc`. Hours are UTC. |
+| What time of day is the greenhouse hottest? | `avg_temperature_c` (and `max_temperature_c`) by `sensor_hour__hour_of_day_pt`. Hours are Pacific local time. |
 | Which days had the greatest temperature extremes? | `temperature_range_c`, `max_temperature_c`, `min_temperature_c` by `metric_time__day`, ordered descending |
-| How does moisture vary by hour of day? | `avg_soil_moisture_pct` by `sensor_hour__hour_of_day_utc` |
+| How does moisture vary by hour of day? | `avg_soil_moisture_pct` by `sensor_hour__hour_of_day_pt` |
 | Is humidity rising or falling? | `avg_humidity_pct` by `metric_time__day` or `metric_time__week` |
 | How many times did the pump run yesterday? | `pump_cycle_count` by `metric_time__day` (returns `0` if none) |
 | How many hours did the fan run this week? | `total_fan_runtime_hours` by `metric_time__week` |
 | Are fan cycles getting longer? | `avg_fan_cycle_duration_seconds` and `fan_cycle_count` by `metric_time__week` |
-| Does irrigation usually happen at the same time of day? | `pump_cycle_count` by `actuator_cycle__start_hour_of_day_utc` |
+| Does irrigation usually happen at the same time of day? | `pump_cycle_count` by `actuator_cycle__start_hour_of_day_pt` |
 | Which days had the most fan or pump activity? | `fan_cycle_count`, `pump_cycle_count`, `total_fan_runtime_seconds` by `metric_time__day` |
 | What percentage of temperature readings were within the target range? | `pct_temperature_readings_in_range` (reading-based, not time-based) |
 | What percentage of moisture readings were below the irrigation threshold? | `pct_moisture_readings_below_threshold` by `metric_time__day` |

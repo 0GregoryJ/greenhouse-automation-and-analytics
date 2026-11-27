@@ -4,9 +4,8 @@ version: 2
 # compliance.
 #
 # Scores come from fct_environmental_score_hourly (one row per UTC hour x
-# gateway x score_version). That is the only score semantic model: the daily
-# model is a plain average/min/max of the hourly rows, which MetricFlow
-# reproduces at day grain, so a second semantic model would duplicate facts.
+# gateway x score_version). metric_time is the Pacific hour of that row.
+# The daily model averages those hours by Pacific date.
 #
 # Target ranges and weights come from config/environmental_score.v1.json (the
 # seed environmental_score_rules). Do not restate them here; change the JSON.
@@ -24,7 +23,7 @@ semantic_models:
       NULL when that component is unavailable.
     model: ref('fct_environmental_score_hourly')
     defaults:
-      agg_time_dimension: measurement_hour_utc
+      agg_time_dimension: measurement_hour_pt
 
     entities:
       - name: score_hour
@@ -37,6 +36,13 @@ semantic_models:
         expr: gateway_id
 
     dimensions:
+      - name: measurement_hour_pt
+        type: time
+        type_params:
+          time_granularity: hour
+        description: >
+          Pacific hour (America/Los_Angeles) of the scored UTC hour. This is
+          the metric time axis.
       - name: measurement_hour_utc
         type: time
         type_params:
@@ -56,6 +62,10 @@ semantic_models:
         description: >
           'complete' when all three components were available and the
           composite score exists; otherwise 'incomplete'.
+      - name: hour_of_day_pt
+        type: categorical
+        expr: HOUR(measurement_hour_pt)
+        description: Pacific hour of day, 0-23 (America/Los_Angeles).
       - name: hour_of_day_utc
         type: categorical
         expr: HOUR(measurement_hour_utc)

@@ -91,6 +91,11 @@ hourly_scores AS (
 
 SELECT
     measurement_hour_utc,
+    CONVERT_TIMEZONE(
+        'UTC',
+        'America/Los_Angeles',
+        measurement_hour_utc
+    ) AS measurement_hour_pt,
     gateway_id,
     score_version,
 

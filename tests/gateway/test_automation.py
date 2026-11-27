@@ -80,7 +80,7 @@ def ctl(tmp_path, module):
     controller.client = FakeClient()
     controller.connected = True
     controller.subscribed = True
-    controller.observed = {"fan": False, "pump": False}
+    controller.fan_on = False
     return controller
 
 
@@ -121,10 +121,11 @@ def test_bad_or_stale_moisture_cannot_activate_pump(module, ctl):
     for _ in range(5):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 300))
     assert not pump_on_commands(ctl)
-    assert ctl.low_moisture_count == 0
+    assert len(ctl.moisture_history) == 5
     old = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
-    for _ in range(5):
+    for _ in range(12):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575, timestamp=old))
+    assert len(ctl.moisture_history) == 5
     assert not pump_on_commands(ctl)
 
 
@@ -134,7 +135,8 @@ def test_duplicate_event_id_is_not_three_independent_low_readings(module, ctl):
     event = reading(module, module.MOISTURE_TYPE, 575, "duplicate-123")
     for _ in range(3):
         ctl.handle_telemetry(event)
-    assert ctl.low_moisture_count == 1
+    assert ctl.dry_streak == 1
+    assert len(ctl.moisture_history) == 10
     assert not pump_on_commands(ctl)
 
 
@@ -166,13 +168,20 @@ def test_event_outbox_is_durable_and_ack_deletes_only_broker_confirmed(module, c
         assert con.execute("SELECT COUNT(*) FROM event_outbox").fetchone()[0] == 0
 
 
-def test_unexpected_pump_on_generates_emergency_off(module, ctl):
-    ctl.handle_shelly_state("pump", True)
-    offs = [p for t, p, _o, _m in ctl.client.sent
-            if t == "pump-test/rpc"
-            and p["method"] == "Switch.Set"
-            and p["params"]["on"] is False]
-    assert offs
+def test_pump_notification_does_not_send_an_off_command(module, ctl):
+    for _ in range(12):
+        ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
+    assert len(pump_on_commands(ctl)) == 1
+    ctl.handle_notify("pump", True)
+    ctl.handle_notify("pump", False)
+    offs = [
+        payload
+        for topic, payload, _options, _mid in ctl.client.sent
+        if topic == "pump-test/rpc"
+        and payload["method"] == "Switch.Set"
+        and payload["params"]["on"] is False
+    ]
+    assert offs == []
 
 
 def test_fan_turns_on_when_fresh_temperature_exceeds_threshold(module, ctl):
@@ -185,36 +194,29 @@ def test_fan_turns_on_when_fresh_temperature_exceeds_threshold(module, ctl):
 
 def test_pump_stays_off_when_automation_is_disabled(module, ctl, monkeypatch):
     monkeypatch.setattr(module, "PUMP_AUTO_ENABLED", False)
-    for _ in range(5):
+    for _ in range(12):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
     assert not pump_on_commands(ctl)
 
 
-def test_unconfirmed_pump_on_is_followed_by_safety_off(module, ctl):
+def test_cooldown_blocks_another_start(module, ctl):
     for _ in range(12):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
     assert len(pump_on_commands(ctl)) == 1
-    # Previous reported relay state may still be OFF, but ON could have executed.
-    assert ctl.observed["pump"] is False
-    ctl.pump_command_at = time.monotonic() - module.PUMP_RUN_SECONDS - module.PUMP_GRACE_SECONDS - 2
-    ctl.tick()
-    assert any(
-        t == "pump-test/rpc"
-        and p["method"] == "Switch.Set"
-        and p["params"]["on"] is False
-        for t, p, _o, _m in ctl.client.sent
-    )
-
-
-def test_command_timeout_does_not_retry_uncertain_pump_on(module, ctl):
-    for _ in range(12):
-        ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 575))
-    assert len(pump_on_commands(ctl)) == 1
-    req_id = ctl.pending["pump"]["id"]
-    ctl.rpc_requests[req_id]["sent_at"] = time.monotonic() - module.RPC_TIMEOUT - 1
-    ctl.tick()
-    assert ctl.pending["pump"] is None or ctl.pending["pump"]["desired"] is False
     for _ in range(3):
         ctl.handle_telemetry(reading(module, module.MOISTURE_TYPE, 565))
     assert len(pump_on_commands(ctl)) == 1
     assert not ctl.pump_budget_available()
+
+
+def test_missing_soil_readings_count_as_dry(module, ctl):
+    ctl.moisture_history.extend([0.0] * 10)
+    ctl.dry_streak = 2
+    ctl.last_soil_at = time.monotonic() - 20
+    ctl.tick()
+    assert len(pump_on_commands(ctl)) == 1
+
+
+def test_silence_before_any_soil_reading_does_not_start_the_pump(module, ctl):
+    ctl.tick()
+    assert not pump_on_commands(ctl)

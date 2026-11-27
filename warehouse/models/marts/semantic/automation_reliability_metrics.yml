@@ -30,11 +30,12 @@ semantic_models:
       Automation lifecycle events. Grain: one row per deduplicated event
       (event_id is unique). Event types: command_issued,
       command_acknowledged, command_failed, state_changed. Timestamps are
-      UTC. Use for event volumes and state transitions; use
-      automation_commands for command outcomes.
+      Pacific local time (measured_at_pt). UTC timestamps are also stored.
+      Use for event volumes and state transitions; use automation_commands
+      for command outcomes.
     model: ref('fct_automation_events')
     defaults:
-      agg_time_dimension: measured_at_utc
+      agg_time_dimension: measured_at_pt
 
     entities:
       - name: automation_event
@@ -45,6 +46,13 @@ semantic_models:
         expr: command_id
 
     dimensions:
+      - name: measured_at_pt
+        type: time
+        type_params:
+          time_granularity: hour
+        description: >
+          Pacific local time (America/Los_Angeles) at which the controller
+          recorded the event. This is the metric time axis.
       - name: measured_at_utc
         type: time
         type_params:
@@ -95,12 +103,12 @@ semantic_models:
     description: >
       Actuator commands issued by the controller. Grain: one row per
       (actuator, command_id) taken from the command_issued event, with the
-      first acknowledgment and first explicit failure joined on. Time axis is
-      the issue time. A command with no acknowledgment is not necessarily
+      first acknowledgment and first explicit failure joined on.       Time axis is
+      the Pacific issue time. A command with no acknowledgment is not necessarily
       lost: acknowledgments can arrive after the data was last built.
     model: ref('fct_automation_commands')
     defaults:
-      agg_time_dimension: issued_at_utc
+      agg_time_dimension: issued_at_pt
 
     entities:
       - name: command
@@ -108,6 +116,13 @@ semantic_models:
         expr: command_id
 
     dimensions:
+      - name: issued_at_pt
+        type: time
+        type_params:
+          time_granularity: hour
+        description: >
+          Pacific local time (America/Los_Angeles) of the command_issued
+          event. This is the metric time axis.
       - name: issued_at_utc
         type: time
         type_params:

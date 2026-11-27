@@ -97,5 +97,11 @@ hourly AS (
         reporting_unit
 )
 
-SELECT *
+SELECT
+    hourly.*,
+    CONVERT_TIMEZONE(
+        'UTC',
+        'America/Los_Angeles',
+        measurement_hour_utc
+    ) AS measurement_hour_pt
 FROM hourly

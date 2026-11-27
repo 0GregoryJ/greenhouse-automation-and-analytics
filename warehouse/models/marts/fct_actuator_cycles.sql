@@ -53,6 +53,8 @@ cycles_with_id AS (
         f.event_id AS off_event_id,
         o.measured_at_utc AS started_at_utc,
         f.measured_at_utc AS ended_at_utc,
+        CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', o.measured_at_utc) AS started_at_pt,
+        CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', f.measured_at_utc) AS ended_at_pt,
         DATEDIFF(
             'second',
             o.measured_at_utc,
@@ -109,6 +111,8 @@ cycles_sequential AS (
         next_event_id AS off_event_id,
         measured_at_utc AS started_at_utc,
         next_measured_at_utc AS ended_at_utc,
+        CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', measured_at_utc) AS started_at_pt,
+        CONVERT_TIMEZONE('UTC', 'America/Los_Angeles', next_measured_at_utc) AS ended_at_pt,
         DATEDIFF(
             'second',
             measured_at_utc,

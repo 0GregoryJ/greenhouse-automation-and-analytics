@@ -65,7 +65,21 @@ final AS (
 
         TO_DATE(
             measured_at_utc
-        ) AS measurement_date_utc
+        ) AS measurement_date_utc,
+
+        CONVERT_TIMEZONE(
+            'America/Los_Angeles',
+            measured_at
+        )::TIMESTAMP_NTZ AS measured_at_pt,
+
+        DATE_TRUNC(
+            'HOUR',
+            CONVERT_TIMEZONE('America/Los_Angeles', measured_at)::TIMESTAMP_NTZ
+        ) AS measurement_hour_pt,
+
+        TO_DATE(
+            CONVERT_TIMEZONE('America/Los_Angeles', measured_at)::TIMESTAMP_NTZ
+        ) AS measurement_date_pt
 
     FROM including_calibrated_moisure
 )

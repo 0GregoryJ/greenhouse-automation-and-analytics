@@ -16,11 +16,11 @@ version: 2
 #     the pairing_method dimension is available if one is ever needed.
 #   * Cycles still ON (no OFF yet) are not in the model and are never counted.
 #
-# Time attribution: every metric is attributed to the cycle START
-# (started_at_utc). A cycle that spans midnight belongs entirely to the day it
-# started, including all of its runtime. Runtime is therefore "runtime of
-# cycles started in the period", not "seconds the actuator was ON during the
-# period", and no duty-cycle percentage is provided.
+# Time attribution: every metric is attributed to the cycle START in Pacific
+# local time (started_at_pt). A cycle that spans midnight belongs entirely to
+# the Pacific day it started, including all of its runtime. Runtime is
+# therefore "runtime of cycles started in the period", not "seconds the
+# actuator was ON during the period", and no duty-cycle percentage is provided.
 #
 # Zero-filling: count and runtime metrics are joined to the daily/hourly time
 # spine and filled with 0, so a day with no cycles returns 0 rather than no
@@ -33,12 +33,13 @@ semantic_models:
     description: >
       Completed actuator ON->OFF cycles. Grain: one row per completed cycle
       (cycle_id is unique per actuator). Incomplete cycles are absent.
-      Timestamps are UTC. Duration is the observed ON-to-OFF interval in
-      seconds. Pump cycles paired by cycle_id are controller-verified; fan
-      cycles are inferred from consecutive state changes.
+      Metric time is Pacific local time (started_at_pt). UTC timestamps are
+      also stored. Duration is the observed ON-to-OFF interval in seconds.
+      Pump cycles paired by cycle_id are controller-verified; fan cycles are
+      inferred from consecutive state changes.
     model: ref('fct_actuator_cycles')
     defaults:
-      agg_time_dimension: started_at_utc
+      agg_time_dimension: started_at_pt
 
     entities:
       - name: actuator_cycle
@@ -46,20 +47,29 @@ semantic_models:
         expr: actuator || ':' || cycle_id
 
     dimensions:
+      - name: started_at_pt
+        type: time
+        type_params:
+          time_granularity: hour
+        description: >
+          Pacific local time (America/Los_Angeles) when the actuator was
+          observed turning ON. Activity metrics are attributed to this time.
+      - name: ended_at_pt
+        type: time
+        type_params:
+          time_granularity: hour
+        description: >
+          Pacific local time when the actuator was observed turning OFF.
       - name: started_at_utc
         type: time
         type_params:
           time_granularity: hour
-        description: >
-          UTC timestamp when the actuator was observed turning ON. All
-          activity metrics are attributed to this time.
+        description: UTC timestamp when the actuator was observed turning ON.
       - name: ended_at_utc
         type: time
         type_params:
           time_granularity: hour
-        description: >
-          UTC timestamp when the actuator was observed turning OFF. Not the
-          default time axis; use only for questions about when cycles ended.
+        description: UTC timestamp when the actuator was observed turning OFF.
       - name: actuator
         type: categorical
         description: Actuator that ran, 'fan' or 'pump'.
@@ -78,12 +88,17 @@ semantic_models:
       - name: off_reason
         type: categorical
         description: Controller reason on the OFF event.
+      - name: start_hour_of_day_pt
+        type: categorical
+        expr: HOUR(started_at_pt)
+        description: >
+          Pacific hour of day (0-23, America/Los_Angeles) when the cycle
+          started. Use to ask whether irrigation or cooling usually happens
+          at the same time of day.
       - name: start_hour_of_day_utc
         type: categorical
         expr: HOUR(started_at_utc)
-        description: >
-          UTC hour of day (0-23) when the cycle started. Use to ask whether
-          irrigation or cooling usually happens at the same time of day.
+        description: UTC hour of day (0-23) when the cycle started.
 
     measures:
       - name: cycles

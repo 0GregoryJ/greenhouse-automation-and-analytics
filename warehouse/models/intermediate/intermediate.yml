@@ -5,8 +5,9 @@ models:
   - name: int_sensor_readings
     description: >
       Valid, deduplicated greenhouse sensor measurements
-      with UTC-normalized timestamps and reusable time
-      dimensions. Source for environmental analytics marts.
+      with UTC and Pacific (America/Los_Angeles) timestamps.
+      Source for environmental analytics marts. The calibration
+      window is ordered by measured_at_utc.
 
     columns:
       - name: event_id
@@ -34,6 +35,21 @@ models:
 
       - name: measurement_date_utc
         description: UTC calendar date of the measurement.
+        data_tests:
+          - not_null
+
+      - name: measured_at_pt
+        description: Measurement timestamp as Pacific wall time (America/Los_Angeles).
+        data_tests:
+          - not_null
+
+      - name: measurement_hour_pt
+        description: Start of the Pacific hour containing the measurement.
+        data_tests:
+          - not_null
+
+      - name: measurement_date_pt
+        description: Pacific calendar date of the measurement.
         data_tests:
           - not_null
 

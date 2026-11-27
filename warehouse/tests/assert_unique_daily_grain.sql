@@ -1,5 +1,5 @@
 SELECT
-    measurement_date_utc,
+    measurement_date_pt,
     gateway_id,
     sensor_id,
     measurement_type,

@@ -1,4 +1,4 @@
-import { formatValue } from "./format.js";
+import { DISPLAY_TIME_ZONE, formatValue } from "./format.js";
 
 /**
  * Weighted average of aggregated points: sum(avg * count) / sum(count).
@@ -116,9 +116,57 @@ function formatInsightValue(value, unit) {
   return suffix ? `${number} ${suffix}` : number;
 }
 
+function pacificParts(date) {
+  const parts = {};
+  for (const part of new Intl.DateTimeFormat("en-US", {
+    timeZone: DISPLAY_TIME_ZONE,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(date)) {
+    if (part.type !== "literal") parts[part.type] = part.value;
+  }
+  return parts;
+}
+
+function pacificOffsetMs(date) {
+  const parts = pacificParts(date);
+  const wallAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+  );
+  return wallAsUtc - date.getTime();
+}
+
+/** Start of the Pacific hour or calendar day that contains `date`, as an instant. */
+function startOfPacificBucket(date, resolution) {
+  const parts = pacificParts(date);
+  const wallAsUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    resolution === "day" ? 0 : Number(parts.hour),
+    0,
+    0,
+  );
+  return new Date(wallAsUtc - pacificOffsetMs(date));
+}
+
+function bucketIso(date) {
+  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
 /**
- * Align sparse API points onto a regular UTC grid so chart gaps stay visible.
- * Missing buckets become null values (Recharts connectNulls={false}).
+ * Align sparse API points onto Pacific hour or day buckets so chart gaps stay
+ * visible. Missing buckets become null values (Recharts connectNulls={false}).
  */
 export function fillTimeline(points, period, resolution, now = Date.now()) {
   const byKey = new Map();
@@ -164,22 +212,17 @@ export function fillTimeline(points, period, resolution, now = Date.now()) {
 }
 
 export function expectedBuckets(period, resolution, now = Date.now()) {
-  const end = new Date(now);
-
-  if (resolution === "day") {
-    end.setUTCHours(0, 0, 0, 0);
-  } else {
-    end.setUTCMinutes(0, 0, 0);
-  }
-
+  const end = startOfPacificBucket(new Date(now), resolution);
   const hours =
     period === "24h" ? 24 : period === "7d" ? 168 : period === "30d" ? 720 : 168;
-  const stepMs = resolution === "day" ? 86_400_000 : 3_600_000;
   const count = resolution === "day" ? Math.ceil(hours / 24) : hours;
   const buckets = [];
 
   for (let i = count - 1; i >= 0; i -= 1) {
-    buckets.push(new Date(end.getTime() - i * stepMs).toISOString().replace(/\.\d{3}Z$/, "Z"));
+    const bucket = resolution === "day"
+      ? startOfPacificBucket(new Date(end.getTime() - i * 86_400_000), "day")
+      : new Date(end.getTime() - i * 3_600_000);
+    buckets.push(bucketIso(bucket));
   }
 
   return buckets;
@@ -187,16 +230,8 @@ export function expectedBuckets(period, resolution, now = Date.now()) {
 
 export function normalizeBucketKey(iso, resolution) {
   const date = new Date(iso);
-
   if (!Number.isFinite(date.getTime())) return null;
-
-  if (resolution === "day") {
-    date.setUTCHours(0, 0, 0, 0);
-  } else {
-    date.setUTCMinutes(0, 0, 0);
-  }
-
-  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+  return bucketIso(startOfPacificBucket(date, resolution));
 }
 
 /**

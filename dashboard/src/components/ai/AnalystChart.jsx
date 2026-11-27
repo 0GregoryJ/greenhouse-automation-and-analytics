@@ -291,7 +291,7 @@ export function AnalystChart({ visualization }) {
         </ResponsiveContainer>
       </div>
       {viz.isTime && viz.granularity === "hour" && (
-        <figcaption className="ai-viz-note">Times shown in UTC.</figcaption>
+        <figcaption className="ai-viz-note">Times shown in Pacific time.</figcaption>
       )}
     </figure>
   );

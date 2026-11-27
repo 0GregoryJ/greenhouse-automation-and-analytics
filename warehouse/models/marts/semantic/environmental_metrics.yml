@@ -3,8 +3,8 @@ version: 2
 # Environmental conditions: temperature, humidity and soil moisture.
 #
 # Source: fct_sensor_hourly (one row per UTC hour x gateway x sensor x
-# measurement type x unit). All timestamps are UTC; MetricFlow does not shift
-# time zones, so "day", "week" and "month" boundaries are UTC boundaries.
+# measurement type x unit). metric_time follows measurement_hour_pt, so day
+# and hour boundaries are America/Los_Angeles wall time. UTC columns remain.
 #
 # Averages are READING-WEIGHTED. fct_sensor_hourly.avg_value is itself an
 # average, so averaging it directly would give every hour the same weight
@@ -26,7 +26,7 @@ semantic_models:
       here.
     model: ref('fct_sensor_hourly')
     defaults:
-      agg_time_dimension: measurement_hour_utc
+      agg_time_dimension: measurement_hour_pt
 
     entities:
       - name: sensor_hour
@@ -42,6 +42,13 @@ semantic_models:
         expr: sensor_id
 
     dimensions:
+      - name: measurement_hour_pt
+        type: time
+        type_params:
+          time_granularity: hour
+        description: >
+          Start of the Pacific hour (America/Los_Angeles) for these readings.
+          This is the metric time axis. The underlying row is still one UTC hour.
       - name: measurement_hour_utc
         type: time
         type_params:
@@ -62,19 +69,25 @@ semantic_models:
       - name: sensor_id
         type: categorical
         description: Sensor that produced the readings.
+      - name: hour_of_day_pt
+        type: categorical
+        expr: HOUR(measurement_hour_pt)
+        description: >
+          Pacific hour of day, 0-23 (America/Los_Angeles). Use to ask what
+          time of day conditions peak.
+      - name: day_of_week_pt
+        type: categorical
+        expr: DAYOFWEEKISO(measurement_hour_pt)
+        description: >
+          ISO Pacific weekday, 1 (Monday) to 7 (Sunday).
       - name: hour_of_day_utc
         type: categorical
         expr: HOUR(measurement_hour_utc)
-        description: >
-          UTC hour of day, 0-23. Use to ask what time of day conditions peak.
-          Greenhouse local time differs from UTC.
+        description: UTC hour of day, 0-23.
       - name: day_of_week_utc
         type: categorical
         expr: DAYOFWEEKISO(measurement_hour_utc)
-        description: >
-          ISO UTC weekday of the reading, 1 (Monday) to 7 (Sunday). Use to
-          compare weekdays. MetricFlow's extract_dow date part is not
-          available in this version.
+        description: ISO UTC weekday, 1 (Monday) to 7 (Sunday).
 
     measures:
       - name: reading_count
@@ -149,8 +162,8 @@ metrics:
       Average air temperature in degrees Celsius over all valid readings in
       the period, weighted by reading count (not an average of hourly
       averages). Use for "what was the temperature", trends, and comparison
-      across days or hours of day. Data is bucketed in UTC; readings outside
-      the plausible range are not removed.
+      across days or hours of day. Hours of day are Pacific local time.
+      Readings outside the plausible range are not removed.
     type: ratio
     type_params:
       numerator:

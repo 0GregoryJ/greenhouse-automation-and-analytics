@@ -1,6 +1,7 @@
 
 import os
-from datetime import date, datetime, timezone, time
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 from contextlib import closing
 
 
@@ -10,22 +11,25 @@ import snowflake.connector
 # Only these period values are allowed.
 # The table name and time interval are selected by our code,
 # never supplied directly by the frontend.
+PACIFIC = ZoneInfo("America/Los_Angeles")
+PACIFIC_NOW = "CONVERT_TIMEZONE('America/Los_Angeles', CURRENT_TIMESTAMP())::TIMESTAMP_NTZ"
+
 PERIOD_CONFIG = {
     "24h": {
         "table": "FCT_SENSOR_HOURLY",
-        "time_column": "MEASUREMENT_HOUR_UTC",
+        "time_column": "MEASUREMENT_HOUR_PT",
         "hours": 24,
         "resolution": "hour",
     },
     "7d": {
         "table": "FCT_SENSOR_HOURLY",
-        "time_column": "MEASUREMENT_HOUR_UTC",
+        "time_column": "MEASUREMENT_HOUR_PT",
         "hours": 168,
         "resolution": "hour",
     },
     "30d": {
         "table": "FCT_SENSOR_DAILY",
-        "time_column": "MEASUREMENT_DATE_UTC",
+        "time_column": "MEASUREMENT_DATE_PT",
         "hours": 720,
         "resolution": "day",
     },
@@ -111,7 +115,7 @@ def get_sensor_history(sensor_id, measurement_type, period):
         WHERE SENSOR_ID = %s
           AND MEASUREMENT_TYPE = %s
           AND {time_column} >= DATEADD(
-              'HOUR', -{hours}, CURRENT_TIMESTAMP()
+              'HOUR', -{hours}, {PACIFIC_NOW}
           )
         ORDER BY {time_column}
     """
@@ -124,17 +128,8 @@ def get_sensor_history(sensor_id, measurement_type, period):
     points = []
 
     for timestamp, avg, minimum, maximum, count, unit in rows:
-        # Snowflake TIMESTAMP_NTZ is stored as UTC in our dbt marts.
-        if isinstance(timestamp, datetime):
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
-        elif isinstance(timestamp, date):
-            timestamp = datetime(
-                timestamp.year, timestamp.month, timestamp.day,
-                tzinfo=timezone.utc,
-            )
-
         points.append({
-            "timestamp": timestamp.isoformat().replace("+00:00", "Z"),
+            "timestamp": to_pacific_iso(timestamp),
             "avg": float(avg),
             "min": float(minimum),
             "max": float(maximum),
@@ -145,20 +140,19 @@ def get_sensor_history(sensor_id, measurement_type, period):
     return points, config["resolution"]
 
 # Historical Environmental Conditions Score
-def to_utc_iso(value):
+def to_pacific_iso(value):
+    """Naive warehouse timestamps are Pacific wall time (America/Los_Angeles)."""
     if isinstance(value, datetime):
         if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
+            value = value.replace(tzinfo=PACIFIC)
         else:
-            value = value.astimezone(timezone.utc)
+            value = value.astimezone(PACIFIC)
     elif isinstance(value, date):
-        value = datetime.combine(
-            value, time.min, tzinfo=timezone.utc
-        )
+        value = datetime.combine(value, time.min, tzinfo=PACIFIC)
     else:
         raise TypeError(f"Unexpected timestamp: {type(value)}")
 
-    return value.isoformat().replace("+00:00", "Z")
+    return value.isoformat()
 
 
 def optional_float(value):
@@ -178,7 +172,7 @@ def get_environmental_score_history(
     if config["resolution"] == "hour":
         query = f"""
             SELECT
-                MEASUREMENT_HOUR_UTC,
+                MEASUREMENT_HOUR_PT,
                 ENVIRONMENTAL_SCORE,
                 TEMPERATURE_SCORE,
                 HUMIDITY_SCORE,
@@ -187,15 +181,15 @@ def get_environmental_score_history(
                 SCORE_VERSION
             FROM GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_MARTS.{table}
             WHERE GATEWAY_ID = %s
-              AND MEASUREMENT_HOUR_UTC >=
+              AND MEASUREMENT_HOUR_PT >=
                   DATEADD('HOUR', -{config["hours"]},
-                          CURRENT_TIMESTAMP())
-            ORDER BY MEASUREMENT_HOUR_UTC
+                          {PACIFIC_NOW})
+            ORDER BY MEASUREMENT_HOUR_PT
         """
     else:
         query = f"""
             SELECT
-                MEASUREMENT_DATE_UTC,
+                MEASUREMENT_DATE_PT,
                 AVG_ENVIRONMENTAL_SCORE,
                 MIN_ENVIRONMENTAL_SCORE,
                 MAX_ENVIRONMENTAL_SCORE,
@@ -204,9 +198,9 @@ def get_environmental_score_history(
                 SCORE_VERSION
             FROM GREENHOUSE_ANALYTICS.GREENHOUSE_DBT_MARTS.{table}
             WHERE GATEWAY_ID = %s
-              AND MEASUREMENT_DATE_UTC >=
-                  DATEADD('DAY', -30, CURRENT_DATE())
-            ORDER BY MEASUREMENT_DATE_UTC
+              AND MEASUREMENT_DATE_PT >=
+                  DATEADD('DAY', -30, TO_DATE({PACIFIC_NOW}))
+            ORDER BY MEASUREMENT_DATE_PT
         """
 
     with closing(get_connection()) as conn:
@@ -230,7 +224,7 @@ def get_environmental_score_history(
             ) = row
 
             points.append({
-                "timestamp": to_utc_iso(timestamp),
+                "timestamp": to_pacific_iso(timestamp),
                 "score": optional_float(score),
                 "temperature_score": optional_float(temp_score),
                 "humidity_score": optional_float(humidity_score),
@@ -250,7 +244,7 @@ def get_environmental_score_history(
             ) = row
 
             points.append({
-                "timestamp": to_utc_iso(timestamp),
+                "timestamp": to_pacific_iso(timestamp),
                 "score": optional_float(avg_score),
                 "min_score": optional_float(min_score),
                 "max_score": optional_float(max_score),
@@ -291,7 +285,7 @@ def get_automation_history(gateway_id: str, actuator: str, period: str):
 
     series_sql = f"""
         SELECT
-            DATE_TRUNC('{trunc}', MEASURED_AT_UTC) AS POINT_TIME,
+            DATE_TRUNC('{trunc}', MEASURED_AT_PT) AS POINT_TIME,
             AVG({value_expr}) AS AVG_VALUE,
             MIN({value_expr}) AS MIN_VALUE,
             MAX({value_expr}) AS MAX_VALUE,
@@ -299,8 +293,8 @@ def get_automation_history(gateway_id: str, actuator: str, period: str):
         FROM {INTERMEDIATE_SCHEMA}.INT_SENSOR_READINGS
         WHERE GATEWAY_ID = %s
           AND MEASUREMENT_TYPE = %s
-          AND MEASURED_AT_UTC >= DATEADD(
-              'HOUR', -{hours}, CURRENT_TIMESTAMP()
+          AND MEASURED_AT_PT >= DATEADD(
+              'HOUR', -{hours}, {PACIFIC_NOW}
           )
           AND {value_expr} IS NOT NULL
         GROUP BY 1
@@ -311,16 +305,16 @@ def get_automation_history(gateway_id: str, actuator: str, period: str):
         SELECT
             CYCLE_ID,
             ACTUATOR,
-            STARTED_AT_UTC,
-            ENDED_AT_UTC,
+            STARTED_AT_PT,
+            ENDED_AT_PT,
             DURATION_SECONDS,
             ON_REASON
         FROM {MARTS_SCHEMA}.FCT_ACTUATOR_CYCLES
         WHERE ACTUATOR = %s
-          AND STARTED_AT_UTC >= DATEADD(
-              'HOUR', -{hours}, CURRENT_TIMESTAMP()
+          AND STARTED_AT_PT >= DATEADD(
+              'HOUR', -{hours}, {PACIFIC_NOW}
           )
-        ORDER BY STARTED_AT_UTC
+        ORDER BY STARTED_AT_PT
     """
 
     with closing(get_connection()) as conn:
@@ -334,7 +328,7 @@ def get_automation_history(gateway_id: str, actuator: str, period: str):
     points = []
     for timestamp, avg, minimum, maximum, count in series_rows:
         points.append({
-            "timestamp": to_utc_iso(timestamp),
+            "timestamp": to_pacific_iso(timestamp),
             "avg": float(avg),
             "min": float(minimum),
             "max": float(maximum),
@@ -354,8 +348,8 @@ def get_automation_history(gateway_id: str, actuator: str, period: str):
         cycles.append({
             "cycle_id": str(cycle_id),
             "actuator": cycle_actuator,
-            "started_at": to_utc_iso(started_at),
-            "ended_at": to_utc_iso(ended_at) if ended_at is not None else None,
+            "started_at": to_pacific_iso(started_at),
+            "ended_at": to_pacific_iso(ended_at) if ended_at is not None else None,
             "duration_seconds": (
                 int(duration_seconds)
                 if duration_seconds is not None

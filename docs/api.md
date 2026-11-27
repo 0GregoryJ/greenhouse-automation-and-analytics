@@ -336,7 +336,7 @@ Answers one natural-language question ([`api/services/analyst.py`](../api/servic
 }
 ```
 
-- `visualization.type` is `line`, `bar`, `table`, or `none` (no rows). A line or bar plan without a grouping dimension falls back to `table`. Rows grouped by `metric_time` are sorted chronologically. Timestamps without an offset are UTC.
+- `visualization.type` is `line`, `bar`, `table`, or `none` (no rows). A line or bar plan without a grouping dimension falls back to `table`. Rows grouped by `metric_time` are sorted chronologically. Timestamps without an offset are Pacific local time (America/Los_Angeles).
 - `series[].label` is the raw metric name; the dashboard humanizes it.
 - `sql` is `null` when compilation fails, with `sql_error` set. The answer is still returned.
 

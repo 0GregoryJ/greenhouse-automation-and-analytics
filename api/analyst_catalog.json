@@ -8,7 +8,7 @@
           "automation_event__desired_state",
           "automation_event__event_type",
           "automation_event__is_initial_observation",
-          "automation_event__measured_at_utc",
+          "automation_event__measured_at_pt",
           "automation_event__observed_state",
           "automation_event__reason",
           "command__actuator",
@@ -17,7 +17,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -34,7 +34,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -46,8 +46,8 @@
         "description": "Avg environmental score",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -59,12 +59,12 @@
         "description": "Avg fan cycle duration seconds",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -74,10 +74,10 @@
         "name": "avg_humidity_pct",
         "description": "Avg humidity pct",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -91,8 +91,8 @@
         "description": "Avg humidity score",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -104,8 +104,8 @@
         "description": "Avg moisture score",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -117,12 +117,12 @@
         "description": "Avg pump cycle duration seconds",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -132,10 +132,10 @@
         "name": "avg_soil_moisture_pct",
         "description": "Avg soil moisture pct",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -148,10 +148,10 @@
         "name": "avg_temperature_c",
         "description": "Avg temperature c",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -165,8 +165,8 @@
         "description": "Avg temperature score",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -177,10 +177,10 @@
         "name": "below_target_min_reading_count",
         "description": "Below target min reading count",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -199,7 +199,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -216,7 +216,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -233,7 +233,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -250,7 +250,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -267,7 +267,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -279,8 +279,8 @@
         "description": "Environmental score coverage pct",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -293,8 +293,8 @@
         "description": "Environmental score hour count",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -307,12 +307,12 @@
         "description": "Fan cycle count",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -322,10 +322,10 @@
         "name": "in_target_range_reading_count",
         "description": "In target range reading count",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -339,12 +339,12 @@
         "description": "Max fan cycle duration seconds",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -355,12 +355,12 @@
         "description": "Max pump cycle duration seconds",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -370,10 +370,10 @@
         "name": "max_soil_moisture_pct",
         "description": "Max soil moisture pct",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -386,10 +386,10 @@
         "name": "max_temperature_c",
         "description": "Max temperature c",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -403,8 +403,8 @@
         "description": "Min environmental score",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -415,10 +415,10 @@
         "name": "min_soil_moisture_pct",
         "description": "Min soil moisture pct",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -431,10 +431,10 @@
         "name": "min_temperature_c",
         "description": "Min temperature c",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -447,10 +447,10 @@
         "name": "pct_humidity_readings_in_range",
         "description": "Pct humidity readings in range",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -463,10 +463,10 @@
         "name": "pct_moisture_readings_below_threshold",
         "description": "Pct moisture readings below threshold",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -479,10 +479,10 @@
         "name": "pct_temperature_readings_in_range",
         "description": "Pct temperature readings in range",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -496,12 +496,12 @@
         "description": "Pump cycle count",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -512,8 +512,8 @@
         "description": "Scored hour count",
         "dimensions": [
           "score_hour__gateway_id",
-          "score_hour__hour_of_day_utc",
-          "score_hour__measurement_hour_utc",
+          "score_hour__hour_of_day_pt",
+          "score_hour__measurement_hour_pt",
           "score_hour__score_version",
           "score_hour__status",
           "metric_time__day",
@@ -525,10 +525,10 @@
         "name": "sensor_reading_count",
         "description": "Sensor reading count",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -541,10 +541,10 @@
         "name": "sensor_value_sum",
         "description": "Sum of sensor values; do not combine across unlike measurement types or units.",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -556,10 +556,10 @@
         "name": "soil_moisture_reading_count",
         "description": "Soil moisture reading count",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -576,7 +576,7 @@
           "automation_event__desired_state",
           "automation_event__event_type",
           "automation_event__is_initial_observation",
-          "automation_event__measured_at_utc",
+          "automation_event__measured_at_pt",
           "automation_event__observed_state",
           "automation_event__reason",
           "command__actuator",
@@ -585,7 +585,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -596,10 +596,10 @@
         "name": "temperature_range_c",
         "description": "Temperature range c",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -612,10 +612,10 @@
         "name": "temperature_reading_count",
         "description": "Temperature reading count",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -629,12 +629,12 @@
         "description": "Total fan runtime hours",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -645,12 +645,12 @@
         "description": "Total fan runtime seconds",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -661,12 +661,12 @@
         "description": "Total pump runtime seconds",
         "dimensions": [
           "actuator_cycle__actuator",
-          "actuator_cycle__ended_at_utc",
+          "actuator_cycle__ended_at_pt",
           "actuator_cycle__off_reason",
           "actuator_cycle__on_reason",
           "actuator_cycle__pairing_method",
-          "actuator_cycle__start_hour_of_day_utc",
-          "actuator_cycle__started_at_utc",
+          "actuator_cycle__start_hour_of_day_pt",
+          "actuator_cycle__started_at_pt",
           "metric_time__day",
           "metric_time__hour"
         ],
@@ -682,7 +682,7 @@
           "command__is_acknowledged",
           "command__is_failed",
           "command__is_timeout_outcome_unknown",
-          "command__issued_at_utc",
+          "command__issued_at_pt",
           "command__reason",
           "metric_time__day",
           "metric_time__hour"
@@ -693,10 +693,10 @@
         "name": "valid_range_reading_count",
         "description": "Valid range reading count",
         "dimensions": [
-          "sensor_hour__day_of_week_utc",
+          "sensor_hour__day_of_week_pt",
           "sensor_hour__gateway_id",
-          "sensor_hour__hour_of_day_utc",
-          "sensor_hour__measurement_hour_utc",
+          "sensor_hour__hour_of_day_pt",
+          "sensor_hour__measurement_hour_pt",
           "sensor_hour__measurement_type",
           "sensor_hour__sensor_id",
           "sensor_hour__unit",
@@ -712,8 +712,8 @@
         "description": "actuator cycle / actuator"
       },
       {
-        "name": "actuator_cycle__ended_at_utc",
-        "description": "actuator cycle / ended at utc"
+        "name": "actuator_cycle__ended_at_pt",
+        "description": "When the cycle ended, Pacific local time (America/Los_Angeles)"
       },
       {
         "name": "actuator_cycle__off_reason",
@@ -728,12 +728,12 @@
         "description": "actuator cycle / pairing method"
       },
       {
-        "name": "actuator_cycle__start_hour_of_day_utc",
-        "description": "actuator cycle / start hour of day utc"
+        "name": "actuator_cycle__start_hour_of_day_pt",
+        "description": "Pacific hour of day the cycle started, 0-23 (America/Los_Angeles)"
       },
       {
-        "name": "actuator_cycle__started_at_utc",
-        "description": "actuator cycle / started at utc"
+        "name": "actuator_cycle__started_at_pt",
+        "description": "When the cycle started, Pacific local time (America/Los_Angeles)"
       },
       {
         "name": "automation_event__actuator",
@@ -752,8 +752,8 @@
         "description": "automation event / is initial observation"
       },
       {
-        "name": "automation_event__measured_at_utc",
-        "description": "automation event / measured at utc"
+        "name": "automation_event__measured_at_pt",
+        "description": "When the event was recorded, Pacific local time (America/Los_Angeles)"
       },
       {
         "name": "automation_event__observed_state",
@@ -788,8 +788,8 @@
         "description": "command / is timeout outcome unknown"
       },
       {
-        "name": "command__issued_at_utc",
-        "description": "command / issued at utc"
+        "name": "command__issued_at_pt",
+        "description": "When the command was issued, Pacific local time (America/Los_Angeles)"
       },
       {
         "name": "command__reason",
@@ -797,23 +797,23 @@
       },
       {
         "name": "metric_time__day",
-        "description": "Metric time by day"
+        "description": "Pacific local calendar day (America/Los_Angeles). Use for trends by day."
       },
       {
         "name": "metric_time__hour",
-        "description": "Metric time by hour"
+        "description": "Pacific local hour (America/Los_Angeles). Use for trends by hour."
       },
       {
         "name": "score_hour__gateway_id",
         "description": "score hour / gateway id"
       },
       {
-        "name": "score_hour__hour_of_day_utc",
-        "description": "score hour / hour of day utc"
+        "name": "score_hour__hour_of_day_pt",
+        "description": "Pacific hour of day of the environmental score, 0-23 (America/Los_Angeles)"
       },
       {
-        "name": "score_hour__measurement_hour_utc",
-        "description": "score hour / measurement hour utc"
+        "name": "score_hour__measurement_hour_pt",
+        "description": "Scored hour in Pacific local time (America/Los_Angeles)"
       },
       {
         "name": "score_hour__score_version",
@@ -824,20 +824,20 @@
         "description": "score hour / status"
       },
       {
-        "name": "sensor_hour__day_of_week_utc",
-        "description": "sensor hour / day of week utc"
+        "name": "sensor_hour__day_of_week_pt",
+        "description": "Pacific weekday, 1 Monday through 7 Sunday (America/Los_Angeles)"
       },
       {
         "name": "sensor_hour__gateway_id",
         "description": "sensor hour / gateway id"
       },
       {
-        "name": "sensor_hour__hour_of_day_utc",
-        "description": "sensor hour / hour of day utc"
+        "name": "sensor_hour__hour_of_day_pt",
+        "description": "Pacific hour of day, 0-23 (America/Los_Angeles). Use for time-of-day questions."
       },
       {
-        "name": "sensor_hour__measurement_hour_utc",
-        "description": "sensor hour / measurement hour utc"
+        "name": "sensor_hour__measurement_hour_pt",
+        "description": "Sensor hour in Pacific local time (America/Los_Angeles)"
       },
       {
         "name": "sensor_hour__measurement_type",

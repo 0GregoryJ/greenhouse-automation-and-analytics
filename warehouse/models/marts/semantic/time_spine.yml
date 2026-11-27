@@ -3,9 +3,9 @@ version: 2
 models:
   - name: metricflow_time_spine_daily
     description: >
-      Daily UTC time spine used by MetricFlow to zero-fill count metrics and
-      join metrics to a continuous calendar. Runs from 2026-10-01 (before the
-      first recorded data) to the current UTC date.
+      Daily Pacific time spine used by MetricFlow to zero-fill count metrics
+      and join metrics to a continuous calendar. Runs from 2026-10-01 (before
+      the first recorded data) to the current America/Los_Angeles date.
     time_spine:
       standard_granularity_column: date_day
     columns:
@@ -17,9 +17,8 @@ models:
 
   - name: metricflow_time_spine_hourly
     description: >
-      Hourly UTC time spine used by MetricFlow for hour-grain queries that
-      need a continuous calendar. Runs from 2026-10-01 00:00 to the current
-      UTC hour.
+      Hourly Pacific wall-clock spine used by MetricFlow for hour-grain
+      queries. Runs from 2026-10-01 00:00 Pacific to the current Pacific hour.
     time_spine:
       standard_granularity_column: date_hour
     columns:
